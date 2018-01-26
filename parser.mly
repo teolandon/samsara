@@ -9,10 +9,10 @@
 
 expr:
   | EOF { 0 }
-  | a = addition { Some a }
+  | a = addition { a }
   ;
 
 addition:
-  | LEFT_PARENT; PLUS; a = INT; b = INT; RIGHT_PAREN
+  | LEFT_PAREN; PLUS; a = INT; b = INT; RIGHT_PAREN
     { a + b }
   ;
