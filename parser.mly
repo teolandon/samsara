@@ -4,12 +4,12 @@
 %token PLUS
 %token EOF
 
-%start <int> expr
+%start <int option> expr
 %%
 
 expr:
-  | EOF { 0 }
-  | a = addition { a }
+  | EOF { None }
+  | a = addition { Some a }
   ;
 
 addition:
