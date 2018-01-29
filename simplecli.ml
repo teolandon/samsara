@@ -6,7 +6,6 @@ open Printf
 type mode =
   | Print
   | Length
-  | Help
 
 let cliMode = ref Print
 
@@ -23,30 +22,27 @@ let printArgs () =
 let printLengths () =
   List.iter (printf "%d\n") (List.map String.length (List.rev !argList))
 
-(* Usage message *)
-let usage =
-  String.concat "\n" [
-    "Usage: simplecli [flags] [args]";
-    "Available flags:";
-    "  -length     prints the lengths of each of the arguments";
-    "  -help       prints this help message"
-  ]
+let usageMsg =
+    "Usage: simplecli [flags] [args]\nAvailable flags:"
 
-let printHelp () =
-  print_endline usage
+let printHelp speclist =
+  usage speclist usageMsg
 
 (* Speclist for Arg Module *)
-let speclist = [
+let rec speclist = [
   ("-length", Arg.Unit (fun () -> cliMode := Length),
-      "prints the lengths of each argument");
-  ("-help",   Arg.Unit (fun () -> cliMode := Help), "prints this help message")
+      "\tprints the lengths of each argument");
+  ("-help",   Arg.Unit (fun () -> printHelp (align speclist); exit 0),
+      "\tprints this help message");
+  ("--help",   Arg.Unit (fun () -> ()), "") (* Supresses default flag *)
 ]
 
+let speclist = align speclist
+
 let main () =
-  Arg.parse speclist addArg "Usage?";
+  Arg.parse speclist addArg usageMsg;
   match !cliMode with
   | Print  -> printArgs ()
-  | Help   -> printHelp ()
   | Length -> printLengths ()
 
 let () = main ()

@@ -6,5 +6,5 @@ SCRIPT="${DIR}/generate-results.sh"
 CORRECT="${DIR}/correct-results.out"
 GENERATED="${DIR}/generated-results.out"
 
-. $SCRIPT > $GENERATED
-diff $CORRECT $GENERATED
+. $SCRIPT > $GENERATED 2>&1
+diff --color=auto $CORRECT $GENERATED
