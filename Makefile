@@ -4,7 +4,7 @@
 # Created:        2018-01-28
 # -----------------------------
 
-.PHONY = test
+.PHONY: test
 
 # Compiler:
 CC = ocamlopt
