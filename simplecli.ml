@@ -31,12 +31,13 @@ let printHelp speclist =
 (* Speclist for Arg Module *)
 let rec speclist = [
   ("-length", Arg.Unit (fun () -> cliMode := Length),
-      "\tprints the lengths of each argument");
+      " prints the lengths of each argument");
   ("-help",   Arg.Unit (fun () -> printHelp (align speclist); exit 0),
-      "\tprints this help message");
+      " prints this help message");
   ("--help",   Arg.Unit (fun () -> ()), "") (* Supresses default flag *)
 ]
 
+(* Use aligned version *)
 let speclist = align speclist
 
 let main () =
