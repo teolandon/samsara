@@ -6,6 +6,9 @@
 # Compiler:
 CC = ocamlopt
 
+# Test script
+TEST = test/compare-results.sh
+
 # Compilation Flags:
 FLAGS =
 
@@ -16,3 +19,6 @@ simplecli: simplecli.ml
 
 clean:
 	rm -f simplecli *.cmi *.cmx *.o
+
+test: simplecli
+	$(TEST)
