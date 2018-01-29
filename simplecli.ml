@@ -2,6 +2,7 @@
 open Arg
 open Printf
 
+(* Program mode of operation *)
 type mode =
   | Print
   | Length
@@ -10,7 +11,7 @@ type mode =
 let cliMode = ref Print
 
 (* A reverse list of the arguments, along with *)
-(*    an add operation and a print operation   *)
+(*  an add operation and the print operations  *)
 let argList = ref []
 
 let addArg arg =
@@ -25,7 +26,7 @@ let printLengths () =
 (* Usage message *)
 let usage =
   String.concat "\n" [
-    "Usage: simple-cli [flags] [args]";
+    "Usage: simplecli [flags] [args]";
     "Available flags:";
     "  -length     prints the lengths of each of the arguments";
     "  -help       prints this help message"
@@ -48,5 +49,4 @@ let main () =
   | Help   -> printHelp ()
   | Length -> printLengths ()
 
-(* Main call to Arg.parse *)
 let () = main ()

@@ -9,10 +9,10 @@ CC = ocamlopt
 # Compilation Flags:
 FLAGS =
 
-all: simple-cli
+all: simplecli
 
-simple-cli: simple-cli.ml
-	$(CC) -o simple-cli simple-cli.ml
+simplecli: simplecli.ml
+	$(CC) -o simplecli simplecli.ml
 
 clean:
-	rm -f simple-cli *.cmi *.cmx *.o
+	rm -f simplecli *.cmi *.cmx *.o
