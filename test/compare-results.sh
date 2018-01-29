@@ -7,4 +7,4 @@ CORRECT="${DIR}/correct-results.out"
 GENERATED="${DIR}/generated-results.out"
 
 . $SCRIPT > $GENERATED 2>&1
-diff --color=auto $CORRECT $GENERATED
+diff $CORRECT $GENERATED
