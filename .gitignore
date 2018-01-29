@@ -4,7 +4,6 @@
 *.cmi
 *.a
 *.o
-*.out
 *.cmx
 *.cmxs
 *.cmxa
@@ -22,3 +21,6 @@ setup.log
 
 # simple-cli binary
 simplecli
+
+# generated test files
+test/generated-results.out
