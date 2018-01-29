@@ -23,11 +23,16 @@ let printLengths () =
   List.iter (printf "%d\n") (List.map String.length (List.rev !argList))
 
 (* Usage message *)
+let usage =
+  String.concat "\n" [
+    "Usage: simple-cli [flags] [args]";
+    "Available flags:";
+    "  -length     prints the lengths of each of the arguments";
+    "  -help       prints this help message"
+  ]
+
 let printHelp () =
-  print_endline "Usage: simple-cli [flags] [args]";
-  print_endline "Available flags:";
-  print_endline "  -length     prints the lengths of each of the arguments";
-  print_endline "  -help       prints this help message";;
+  print_endline usage
 
 (* Speclist for Arg Module *)
 let speclist = [
