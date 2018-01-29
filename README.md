@@ -54,6 +54,11 @@ Note about flags: The `-help` flag overrides any other execution. If it's
 present, then the usage message will be displayed and no arguments will be
 echoed. Invalid flags also interrupt the program and print the usage statement.
 
+## Hooks
+It's highly recommended that git hooks are installed for this repo to automate
+testing and keep commits clean and correct. Refer to the HOOKS.md file in the
+**hooks/** directory.
+
 # Changelog
 
 ## Assignment 01 - 2018-01-30
