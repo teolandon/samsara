@@ -34,17 +34,25 @@ installations, and are mostly available in Windows using the [Windows Subsystem
 for Linux](https://docs.microsoft.com/en-us/windows/wsl/about).
 
 ## Build
-
 To compile simplecli, run `make` in the root directory.
 To remove all compiled and intermediary files, run `make clean`.
 
 ## Testing
-
 Tests can be ran using `make test`. They produce a diff of the expected outputs
 of the arguments in `test/args.in` and the actual results when ran. An easy way
 of checking if the test was successful in a script is to check the result of the
 variable `$?`, which reports the exit code of the last command that ran. If it's
 `0`, then the results are identical, else the test has failed.
+
+## Execution
+Run simplecli in the terminal, using `./simplecli [flag] arg1 arg2 arg3`,
+where `arg1` `arg2` `arg3`, etc are the arguments that are to be echoed back
+into the terminal line by line, and `[flag]` an optional flag, as seen above in
+the **simplecli** section.
+
+Note about flags: The `-help` flag overrides any other execution. If it's
+present, then the usage message will be displayed and no arguments will be
+echoed. Invalid flags also interrupt the program and print the usage statement.
 
 # Changelog
 
