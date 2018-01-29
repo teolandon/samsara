@@ -5,8 +5,6 @@ open Printf
 open Lexer
 open Lexing
 
-let file = ref ""
-
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
   printf "%s:%d:%d"
@@ -15,7 +13,7 @@ let print_position outx lexbuf =
     (pos.pos_cnum - pos.pos_bol + 1)
 
 let parse_with_error lexbuf =
-  try Parser.expr Lexer.read lexbuf with
+  try Parser.code Lexer.read lexbuf with
     | SyntaxError msg ->
         fprintf stderr "%a: %s\n" print_position lexbuf msg;
         Some 0
@@ -29,13 +27,13 @@ let rec parse_and_print lexbuf =
         printf "%d\n" addition;
         parse_and_print lexbuf
     | None ->
-        printf "EOF reached\n";
+        printf "EOF reached\n"
 
 let loop filename =
-  let inx = open_in filename in
-  let lexbuf = Lexing.from_channel inx in
-  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
-  parse_and_print lexbuf;
-  close_in inx;;
+  let in_f = open_in filename in
+  let lexbuf = Lexing.from_channel in_f in
+    lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
+    parse_and_print lexbuf;
+    close_in in_f;;
 
-Arg.parse [] loop ""
+Arg.parse [] loop "this"

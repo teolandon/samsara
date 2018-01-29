@@ -4,15 +4,19 @@
 %token PLUS
 %token EOF
 
-%start <int option> expr
+%start <int option> code
 %%
 
-expr:
+code:
   | EOF { None }
-  | a = addition { Some a }
+  | e = expr { Some e }
+
+expr:
+  | a = addition { a }
+  | b = INT { b }
   ;
 
 addition:
-  | LEFT_PAREN; PLUS; a = INT; b = INT; RIGHT_PAREN
+  | LEFT_PAREN; PLUS; a = expr; b = expr; RIGHT_PAREN
     { a + b }
   ;
