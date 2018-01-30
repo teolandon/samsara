@@ -18,3 +18,9 @@ _build/
 # oasis generated files
 setup.data
 setup.log
+
+# simple-cli binary
+simplecli
+
+# generated test files
+test/generated-results.out
