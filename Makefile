@@ -15,13 +15,16 @@ TEST = test/compare-results.sh
 # Compilation Flags:
 FLAGS =
 
-all: simplecli
+all: samsara
+
+samsara: samsara.ml
+	$(CC) -o samsara samsara.ml
 
 simplecli: simplecli.ml
 	$(CC) -o simplecli simplecli.ml
 
 clean:
-	rm -f simplecli *.cmi *.cmx *.o test/generated-results.out
+	rm -f simplecli samsara *.cmi *.cmx *.o test/generated-results.out
 
 test: simplecli
 	$(TEST)

@@ -19,8 +19,9 @@ _build/
 setup.data
 setup.log
 
-# simple-cli binary
+# binaries
 simplecli
+samsara
 
 # generated test files
 test/generated-results.out
