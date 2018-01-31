@@ -10,7 +10,8 @@
 CC = ocamlopt
 
 # Test script
-TEST = test/compare-results.sh
+CLI_TEST = test/simplecli/compare-results.sh
+SAMSARA_TEST = test/samsara/test.sh
 
 # Compilation Flags:
 FLAGS =
@@ -24,7 +25,8 @@ simplecli: simplecli.ml
 	$(CC) -o simplecli simplecli.ml
 
 clean:
-	rm -f simplecli samsara *.cmi *.cmx *.o test/generated-results.out
+	rm -f simplecli samsara *.cmi *.cmx *.o test/simplecli/generated-results.out
 
-test: simplecli
-	$(TEST)
+test: simplecli samsara
+	$(CLI_TEST)
+	$(SAMSARA_TEST)
