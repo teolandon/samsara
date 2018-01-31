@@ -1,39 +1,71 @@
 (* Main file *)
 
-open Arg
 open Printf
-open Lexer
-open Lexing
 
-let print_position outx lexbuf =
-  let pos = lexbuf.lex_curr_p in
-  printf "%s:%d:%d"
-    pos.pos_fname
-    pos.pos_lnum
-    (pos.pos_cnum - pos.pos_bol + 1)
+type token =
+  | ELeftParen | ERightParen
+  | EPlus | EInt of int
 
-let parse_with_error lexbuf =
-  try Parser.code Lexer.read lexbuf with
-    | SyntaxError msg ->
-        fprintf stderr "%a: %s\n" print_position lexbuf msg;
-        Some 0
-    | Parser.Error ->
-        fprintf stderr "%a: syntax error\n" print_position lexbuf;
-        exit (-1)
+let string_of_token t =
+  match t with
+  | ELeftParen -> "("
+  | ERightParen -> ")"
+  | EPlus -> "+"
+  | EInt a -> string_of_int a
 
-let rec parse_and_print lexbuf =
-  match parse_with_error lexbuf with
-    | Some addition ->
-        printf "%d\n" addition;
-        parse_and_print lexbuf
-    | None ->
-        printf "EOF reached\n"
+let tokenList: token list ref = ref []
+
+let addToken t =
+  tokenList := t :: !tokenList
+
+(* Returns the numeric value of the given char, given it's a digit *)
+let int_of_char ch =
+  (Pervasives.int_of_char ch) - 48
+
+let rec ten_exp = function
+  | 0 -> 1
+  | a -> 10 * ten_exp (a-1)
+
+let rec read_int depth ic digit_list =
+  let rec calc_int curr_digit curr_int curr_digit_list =
+    match curr_digit_list with
+    | []     -> curr_int
+    | (h::t) ->
+        let new_part_int = h * (ten_exp curr_digit) in
+        calc_int (curr_digit + 1) (new_part_int + curr_int) t
+  in
+  let next = input_char ic in
+  match next with
+  | ' ' | '\n' -> calc_int 0 0 digit_list
+  | '0'..'9' -> read_int (depth + 1) ic ((int_of_char next)::digit_list)
+  | _ -> printf "char '%c' too op at level %d\n" next depth; exit 0; 0
+
+let rec print_tokens token_list =
+  match token_list with
+  | [] -> ()
+  | (t::ts) -> print_endline (string_of_token t); print_tokens ts
 
 let loop filename =
-  let in_f = open_in filename in
-  let lexbuf = Lexing.from_channel in_f in
-    lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
-    parse_and_print lexbuf;
-    close_in in_f;;
+  let ic = open_in filename in
+  let read_int_h i =
+    read_int 0 ic [i]
+  in
+  try
+    while true do
+      let ch = input_char ic in
+      match ch with
+      | '('   -> addToken ELeftParen
+      | ')'   -> addToken ERightParen
+      | '+'   -> addToken EPlus
+      | '0'..'9' -> addToken (EInt (read_int_h (int_of_char ch)))
+      | ' '   -> ()
+      |  _    -> ()
+    done
+  with End_of_file -> ()
 
-Arg.parse [] loop "this"
+let main () =
+  Arg.parse [] loop "this";
+  let lst = List.rev !tokenList in
+  print_tokens lst
+
+let () = main ()
