@@ -20,8 +20,8 @@ setup.data
 setup.log
 
 # binaries
-simplecli
-samsara
+/simplecli
+/samsara
 
 # generated test files
-test/generated-results.out
+test/samsara/generated-results.out
