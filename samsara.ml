@@ -26,19 +26,19 @@ let rec ten_exp = function
   | 0 -> 1
   | a -> 10 * ten_exp (a-1)
 
-let rec read_int depth ic digit_list =
-  let rec calc_int curr_digit curr_int curr_digit_list =
+let rec read_int ic digit_list =
+  let rec calc_int curr_mult curr_int curr_digit_list =
     match curr_digit_list with
     | []     -> curr_int
     | (h::t) ->
-        let new_part_int = h * (ten_exp curr_digit) in
-        calc_int (curr_digit + 1) (new_part_int + curr_int) t
+        let new_part_int = h * curr_mult in
+        calc_int (curr_mult * 10) (new_part_int + curr_int) t
   in
   let next = input_char ic in
   match next with
-  | ' ' | '\n' -> calc_int 0 0 digit_list
-  | '0'..'9' -> read_int (depth + 1) ic ((int_of_char next)::digit_list)
-  | _ -> printf "char '%c' too op at level %d\n" next depth; exit 0; 0
+  | ' ' | '\n' | '(' | ')' -> calc_int 1 0 digit_list
+  | '0'..'9' -> read_int ic ((int_of_char next)::digit_list)
+  | _ -> printf "char '%c' too op\n" next; exit 0; 0
 
 let rec print_tokens token_list =
   match token_list with
@@ -48,7 +48,7 @@ let rec print_tokens token_list =
 let loop filename =
   let ic = open_in filename in
   let read_int_h i =
-    read_int 0 ic [i]
+    read_int ic [i]
   in
   try
     while true do
@@ -57,7 +57,8 @@ let loop filename =
       | '('   -> addToken ELeftParen
       | ')'   -> addToken ERightParen
       | '+'   -> addToken EPlus
-      | '0'..'9' -> addToken (EInt (read_int_h (int_of_char ch)))
+      | '0'..'9' -> addToken (EInt (read_int_h (int_of_char ch)));
+                    seek_in ic (pos_in ic - 1)
       | ' '   -> ()
       |  _    -> ()
     done
