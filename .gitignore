@@ -23,5 +23,6 @@ setup.log
 /simplecli
 /samsara
 
-# generated test files
-test/samsara/generated-results.out
+# test files
+test/simplecli/generated-results.out
+*.arith

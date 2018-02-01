@@ -1,10 +1,10 @@
 (* Main file *)
-
 open Printf
 
 type token =
   | ELeftParen | ERightParen
-  | EPlus | EInt of int
+  | EPlus
+  | EInt of int
 
 let string_of_token t =
   match t with
@@ -21,10 +21,6 @@ let addToken t =
 (* Returns the numeric value of the given char, given it's a digit *)
 let int_of_char ch =
   (Pervasives.int_of_char ch) - 48
-
-let rec ten_exp = function
-  | 0 -> 1
-  | a -> 10 * ten_exp (a-1)
 
 let rec read_int ic digit_list =
   let rec calc_int curr_mult curr_int curr_digit_list =
@@ -50,6 +46,7 @@ let loop filename =
   let read_int_h i =
     read_int ic [i]
   in
+  printf "Parsing file %s:\n" filename;
   try
     while true do
       let ch = input_char ic in
@@ -57,16 +54,18 @@ let loop filename =
       | '('   -> addToken ELeftParen
       | ')'   -> addToken ERightParen
       | '+'   -> addToken EPlus
-      | '0'..'9' -> addToken (EInt (read_int_h (int_of_char ch)));
-                    seek_in ic (pos_in ic - 1)
+      | '0'..'9' ->
+          addToken (EInt (read_int_h (int_of_char ch)));
+          seek_in ic (pos_in ic - 1) (* It's hacky and I know it *)
       | ' '   -> ()
       |  _    -> ()
     done
-  with End_of_file -> ()
+  with End_of_file ->
+    let lst = List.rev !tokenList in
+    print_tokens lst;
+    printf "Ended parsing file %s\n" filename
 
 let main () =
-  Arg.parse [] loop "this";
-  let lst = List.rev !tokenList in
-  print_tokens lst
+  Arg.parse [] loop "this"
 
 let () = main ()
