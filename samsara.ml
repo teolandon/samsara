@@ -17,7 +17,7 @@ let rec read_int ic digit_list =
   match next with
   | ' ' | '\n' | '(' | ')' -> calc_int 1 0 digit_list
   | '0'..'9' -> read_int ic ((int_of_char next)::digit_list)
-  | _ -> printf "char '%c' too op\n" next; exit 0; 0
+  | _ -> raise Parser.Invalid_token
 
 let loop filename =
   let ic = open_in filename in

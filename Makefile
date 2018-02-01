@@ -31,7 +31,7 @@ simplecli: simplecli.ml
 	$(CC) -o simplecli simplecli.ml
 
 clean:
-	rm -f simplecli samsara *.cmi *.cmx *.o test/simplecli/generated-results.out
+	rm -f simplecli samsara *.cmo *.cmi *.cmx *.o test/simplecli/generated-results.out
 
 test: simplecli samsara
 	$(CLI_TEST)
