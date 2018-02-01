@@ -18,8 +18,14 @@ FLAGS =
 
 all: samsara
 
-samsara: samsara.ml
-	$(CC) -o samsara samsara.ml
+samsara: parser.cmx samsara.cmx
+	$(CC) -o samsara parser.cmx samsara.cmx
+
+parser.cmx: parser.ml
+	$(CC) -c parser.ml
+
+samsara.cmx: samsara.ml
+	$(CC) -c samsara.ml
 
 simplecli: simplecli.ml
 	$(CC) -o simplecli simplecli.ml

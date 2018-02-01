@@ -1,23 +1,6 @@
 (* Main file *)
 open Printf
 
-type token =
-  | ELeftParen | ERightParen
-  | EPlus
-  | EInt of int
-
-let string_of_token t =
-  match t with
-  | ELeftParen -> "("
-  | ERightParen -> ")"
-  | EPlus -> "+"
-  | EInt a -> string_of_int a
-
-let tokenList: token list ref = ref []
-
-let addToken t =
-  tokenList := t :: !tokenList
-
 (* Returns the numeric value of the given char, given it's a digit *)
 let int_of_char ch =
   (Pervasives.int_of_char ch) - 48
@@ -36,11 +19,6 @@ let rec read_int ic digit_list =
   | '0'..'9' -> read_int ic ((int_of_char next)::digit_list)
   | _ -> printf "char '%c' too op\n" next; exit 0; 0
 
-let rec print_tokens token_list =
-  match token_list with
-  | [] -> ()
-  | (t::ts) -> print_endline (string_of_token t); print_tokens ts
-
 let loop filename =
   let ic = open_in filename in
   let read_int_h i =
@@ -51,21 +29,22 @@ let loop filename =
     while true do
       let ch = input_char ic in
       match ch with
-      | '('   -> addToken ELeftParen
-      | ')'   -> addToken ERightParen
-      | '+'   -> addToken EPlus
+      | '('   -> Parser.addToken Parser.ELeftParen
+      | ')'   -> Parser.addToken Parser.ERightParen
+      | '+'   -> Parser.addToken Parser.EPlus
       | '0'..'9' ->
-          addToken (EInt (read_int_h (int_of_char ch)));
+          Parser.addToken (Parser.EInt (read_int_h (int_of_char ch)));
           seek_in ic (pos_in ic - 1) (* It's hacky and I know it *)
       | ' '   -> ()
       |  _    -> ()
     done
   with End_of_file ->
-    let lst = List.rev !tokenList in
-    print_tokens lst;
+    Parser.print_tokens ();
     printf "Ended parsing file %s\n" filename
 
 let main () =
-  Arg.parse [] loop "this"
+  Arg.parse [] loop "this";
+  let myAST = Parser.computeAST () in
+  Parser.printAST myAST
 
 let () = main ()
