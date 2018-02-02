@@ -45,6 +45,9 @@ let loop filename =
 let main () =
   Arg.parse [] loop "this";
   let myAST = Parser.computeAST () in
-  Parser.printAST myAST
+  let result = Parser.simplifyAST myAST in
+  Parser.printAST myAST;
+  printf "\n\nResult: %d\n" result
+
 
 let () = main ()

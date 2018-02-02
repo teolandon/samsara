@@ -68,5 +68,10 @@ let rec printAST_h tree depth =
       printAST_h tree2 (depth+1);
       printf "%s:fo muS\n" indent
 
+let rec simplifyAST tree =
+  match tree with
+  | ELit a              -> a
+  | ESum (tree1, tree2) -> (simplifyAST tree1) + (simplifyAST tree2)
+
 let printAST tree =
   printAST_h tree 0
