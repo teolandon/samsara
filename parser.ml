@@ -32,27 +32,28 @@ type ast =
   | ELit of int
   | ESum of (ast * ast)
 
-let rec computeAST_h listRef =
-  let readToken () =
-    match !listRef with
+let rec computeAST_h tokenList =
+  let splitList tokens =
+    match tokens with
     | []      -> raise (Invalid_token "Expression not valid")
-    | (t::ts) -> listRef := ts; t
+    | (t::ts) -> (t, ts)
   in
-  match readToken () with
-  | EInt x -> ((ELit x), !listRef)
+  let readPlus tokens =
+    let (t, ts) = splitList tokens in
+    match t with
+    | EPlus ->
+        let (tree1, ts) = computeAST_h ts in
+        let (tree2, ts) = computeAST_h ts in
+        let sum = ESum (tree1, tree2) in
+        match splitList ts with
+        | (ERightParen, remaining) -> (sum, remaining)
+        | _ -> raise (Invalid_token "Addition expresion not closed")
+  in
+  let (t, ts) = splitList tokenList in
+  match t with
+  | EInt x -> ((ELit x), ts)
   | ELeftParen ->
-      (match readToken () with
-      | EPlus ->
-          let (tree1, _) = computeAST_h listRef in
-          let (tree2, _) = computeAST_h listRef in
-          let sum = ESum (tree1, tree2) in
-          (match readToken () with
-          | ERightParen -> (sum, !listRef)
-          | _           ->
-              raise (Invalid_token "Addition expresion not closed")
-          )
-      | _ -> raise (Invalid_token "No operator found after paren")
-      )
+      readPlus ts
   | _ -> raise (Invalid_token "Expression not valid")
 
 let rec evaluateAST tree =
@@ -61,8 +62,7 @@ let rec evaluateAST tree =
   | ESum (tree1, tree2) -> (evaluateAST tree1) + (evaluateAST tree2)
 
 let computeAST tokenList =
-  let listRef = ref tokenList in
-  let (tree, remainingTokens) = computeAST_h listRef in
+  let (tree, remainingTokens) = computeAST_h tokenList in
   match remainingTokens with
   | [] -> tree
   | _  -> raise (Invalid_token "Program not valid: trailing characters")
