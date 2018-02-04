@@ -15,18 +15,10 @@ let string_of_token t =
   | EPlus -> "+"
   | EInt a -> string_of_int a
 
-let tokenList: token list ref = ref []
-
-let addToken t =
-  tokenList := t :: !tokenList
-
 let rec print_tokens_h token_list =
   match token_list with
   | [] -> ()
   | (t::ts) -> print_endline (string_of_token t); print_tokens_h ts
-
-let print_tokens () =
-  print_tokens_h (List.rev !tokenList)
 
 type ast =
   | ELit of int
@@ -45,9 +37,11 @@ let rec computeAST_h tokenList =
         let (tree1, ts) = computeAST_h ts in
         let (tree2, ts) = computeAST_h ts in
         let sum = ESum (tree1, tree2) in
-        match splitList ts with
+        (match splitList ts with
         | (ERightParen, remaining) -> (sum, remaining)
         | _ -> raise (Invalid_token "Addition expresion not closed")
+        )
+    | _ -> raise (Invalid_token "No + after open paren")
   in
   let (t, ts) = splitList tokenList in
   match t with
