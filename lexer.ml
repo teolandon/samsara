@@ -2,7 +2,7 @@
 let int_of_char ch =
   (Pervasives.int_of_char ch) - 48
 
-exception Lexing_error
+exception Lexing_error of string
 
 let rec read_int ic digit_list =
   let rec calc_int curr_mult curr_int curr_digit_list =
@@ -18,7 +18,7 @@ let rec read_int ic digit_list =
       seek_in ic (pos_in ic - 1); (* It's hacky and I know it *)
       calc_int 1 0 digit_list
   | '0'..'9' -> read_int ic ((int_of_char next)::digit_list)
-  | _ -> raise Parser.Invalid_token
+  | _ -> raise (Lexing_error "Invalid end of integer")
 
 let safe_read_char ic =
   try
@@ -41,8 +41,8 @@ let rec lex_h ic tokenList =
         | '+'   -> Parser.EPlus :: tokenList
         | '0'..'9' ->
             (Parser.EInt (read_int_h (int_of_char c))) :: tokenList
-        | ' '   -> tokenList
-        |  _    -> tokenList
+        | ' ' | '\n'   -> tokenList
+        |  _           -> raise (Lexing_error "Invalid char")
       in
       lex_h ic newList
   )

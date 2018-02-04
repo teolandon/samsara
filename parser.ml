@@ -6,7 +6,7 @@ type token =
   | EPlus
   | EInt of int
 
-exception Invalid_token
+exception Invalid_token of string
 
 let string_of_token t =
   match t with
@@ -32,9 +32,14 @@ type ast =
   | ELit of int
   | ESum of (ast * ast)
 
-let rec computeAST_h tokenList =
-  match tokenList with
-  | ((EInt x):ts) -> ((ELit x), ts)
+let rec computeAST_h listRef =
+  let readToken () =
+    match !listRef with
+    | []      -> raise (Invalid_token "Expression not valid")
+    | (t::ts) -> listRef := ts; t
+  in
+  match readToken () with
+  | EInt x -> ELit x
   | ELeftParen ->
       (match readToken () with
       | EPlus ->
@@ -43,15 +48,12 @@ let rec computeAST_h tokenList =
           let sum = ESum (tree1, tree2) in
           (match readToken () with
           | ERightParen -> sum
-          | _           -> raise Invalid_token
+          | _           ->
+              raise (Invalid_token "Addition expresion not closed")
           )
-      | _ -> raise Invalid_token
+      | _ -> raise (Invalid_token "No operator found after paren")
       )
-  | _ -> raise Invalid_token
-
-let computeAST () =
-  let listRef = ref (List.rev !tokenList) in
-  computeAST_h listRef
+  | _ -> raise (Invalid_token "Expression not valid")
 
 let rec printAST_h tree depth =
   let indent = String.make depth ' ' in
@@ -63,13 +65,15 @@ let rec printAST_h tree depth =
       printAST_h tree2 (depth+1);
       printf "%s:fo muS\n" indent
 
-let rec simplifyAST tree =
+let rec evaluateAST tree =
   match tree with
   | ELit a              -> a
-  | ESum (tree1, tree2) -> (simplifyAST tree1) + (simplifyAST tree2)
+  | ESum (tree1, tree2) -> (evaluateAST tree1) + (evaluateAST tree2)
 
 let createAndEvaluate tokenList =
-  computeAST
+  let listRef = ref tokenList in
+  let tree = computeAST_h listRef in
+  evaluateAST tree
 
 let printAST tree =
   printAST_h tree 0
