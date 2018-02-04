@@ -21,10 +21,12 @@ all: samsara
 samsara: parser.cmx lexer.cmx samsara.cmx
 	$(CC) -o samsara parser.cmx lexer.cmx samsara.cmx
 
-parser.cmx: parser.ml
+parser.cmx: parser.ml parser.mli
+	$(CC)    parser.mli
 	$(CC) -c parser.ml
 
-lexer.cmx: lexer.ml
+lexer.cmx: lexer.ml lexer.mli
+	$(CC)    lexer.mli
 	$(CC) -c lexer.ml
 
 samsara.cmx: samsara.ml

@@ -6,6 +6,10 @@ type token =
   | EPlus
   | EInt of int
 
+type ast =
+  | ELit of int
+  | ESum of (ast * ast)
+
 exception Invalid_token of string
 
 let string_of_token t =
@@ -19,10 +23,6 @@ let rec print_tokens_h token_list =
   match token_list with
   | [] -> ()
   | (t::ts) -> print_endline (string_of_token t); print_tokens_h ts
-
-type ast =
-  | ELit of int
-  | ESum of (ast * ast)
 
 let rec computeAST_h tokenList =
   let splitList tokens =
