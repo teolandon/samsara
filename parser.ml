@@ -32,14 +32,9 @@ type ast =
   | ELit of int
   | ESum of (ast * ast)
 
-let rec computeAST_h listRef =
-  let readToken () =
-    match !listRef with
-    | []      -> raise Invalid_token
-    | (t::ts) -> listRef := ts; t
-  in
-  match readToken () with
-  | EInt x -> ELit x
+let rec computeAST_h tokenList =
+  match tokenList with
+  | ((EInt x):ts) -> ((ELit x), ts)
   | ELeftParen ->
       (match readToken () with
       | EPlus ->
@@ -72,6 +67,9 @@ let rec simplifyAST tree =
   match tree with
   | ELit a              -> a
   | ESum (tree1, tree2) -> (simplifyAST tree1) + (simplifyAST tree2)
+
+let createAndEvaluate tokenList =
+  computeAST
 
 let printAST tree =
   printAST_h tree 0
