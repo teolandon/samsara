@@ -1,20 +1,22 @@
-bad.arith:
+000-bad.arith:
 	Parser error: No + after open paren
-divide.arith:
+001-divide.arith:
 	5
-divide-by-zero.arith:
+002-divide-by-zero.arith:
 	Invalid expression: Divide by 0
-minus.arith:
+003-minus.arith:
 	29
-no-right-paren.arith:
+004-no-right-paren.arith:
 	Parser error: Expression not valid
-no-spaces.arith:
+005-no-spaces.arith:
 	7
-num.arith:
+006-num.arith:
 	26
-simple.arith:
+007-simple.arith:
 	24
-trail.arith:
+008-trail.arith:
 	Parser error: Program not valid: trailing characters
-unexpected-char.arith:
+009-unexpected-char.arith:
 	Lexing error: Invalid char
+010-mult.arith:
+	100
