@@ -1,6 +1,9 @@
 (* Parsing *)
 open Printf
 
+exception Invalid_token of string
+exception Invalid_expr  of string
+
 type eop =
   | EPlus
   | EMinus
@@ -8,12 +11,17 @@ type eop =
   | EDiv
   | EMod
 
+let safe_division int1 int2 =
+  match int2 with
+  | 0 -> raise (Invalid_expr "Divide by 0")
+  | _ -> int1 / int2
+
 let op_of_eop (opr:eop) =
   match opr with
   | EPlus -> ( + )
   | EMinus -> ( - )
   | EMult -> ( * )
-  | EDiv -> ( / )
+  | EDiv -> ( safe_division )
   | EMod -> ( mod )
 
 let string_of_eop (opr:eop) =
@@ -32,8 +40,6 @@ type token =
 type ast =
   | ELit of int
   | EExpr of ((int->int->int) * ast * ast)
-
-exception Invalid_token of string
 
 let string_of_token t =
   match t with

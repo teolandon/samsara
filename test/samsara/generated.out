@@ -1,5 +1,9 @@
 bad.arith:
 	Parser error: No + after open paren
+divide.arith:
+	5
+divide-by-zero.arith:
+	Invalid expression: Divide by 0
 minus.arith:
 	29
 no-right-paren.arith:

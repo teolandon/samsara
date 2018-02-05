@@ -14,7 +14,8 @@ let compile file =
     printf "%d\n" result
   with
   | Parser.Invalid_token str -> printf "Parser error: %s\n" str
-  | Lexer.Lexing_error str  -> printf "Lexing error: %s\n" str
+  | Parser.Invalid_expr  str -> printf "Invalid expression: %s\n" str
+  | Lexer.Lexing_error   str -> printf "Lexing error: %s\n" str
 
 let rec compileFiles files =
   match files with

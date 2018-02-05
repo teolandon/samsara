@@ -1,3 +1,9 @@
+(** Raised when constructing an AST and syntax is wrong *)
+exception Invalid_token of string
+
+(** Raised when evaluating an AST and an illegal expression is evaluated *)
+exception Invalid_expr of string
+
 (** Represents the tokens for arithmetic operations *)
 type eop = EPlus | EMinus | EMult | EDiv | EMod
 
@@ -8,9 +14,6 @@ type token = ELeftParen | ERightParen | EOp of eop | EInt of int
  *  an int, and the sum of two ASTs.
  *)
 type ast = ELit of int | EExpr of ((int->int->int) * ast * ast)
-
-(** Raised when constructing the AST and syntax is wrong *)
-exception Invalid_token of string
 
 (** Evaluates the given AST and returns the int value of
  *  its evaluation
