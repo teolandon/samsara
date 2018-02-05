@@ -38,7 +38,11 @@ let rec lex_h ic tokenList =
         match c with
         | '('   -> Parser.ELeftParen :: tokenList
         | ')'   -> Parser.ERightParen :: tokenList
-        | '+'   -> Parser.EPlus :: tokenList
+        | '+'   -> Parser.EOp Parser.EPlus :: tokenList
+        | '-'   -> Parser.EOp Parser.EMinus :: tokenList
+        | '*'   -> Parser.EOp Parser.EMult :: tokenList
+        | '/'   -> Parser.EOp Parser.EDiv :: tokenList
+        | '%'   -> Parser.EOp Parser.EMod :: tokenList
         | '0'..'9' ->
             (Parser.EInt (read_int_h (int_of_char c))) :: tokenList
         | ' ' | '\n'   -> tokenList

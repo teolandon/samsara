@@ -1,5 +1,7 @@
 bad.arith:
 	Parser error: No + after open paren
+minus.arith:
+	29
 no-right-paren.arith:
 	Parser error: Expression not valid
 no-spaces.arith:

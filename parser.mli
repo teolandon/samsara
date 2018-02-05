@@ -1,10 +1,13 @@
+(** Represents the tokens for arithmetic operations *)
+type eop = EPlus | EMinus | EMult | EDiv | EMod
+
 (** Represents the tokens that make up the Samsara syntax *)
-type token = ELeftParen | ERightParen | EPlus | EInt of int
+type token = ELeftParen | ERightParen | EOp of eop | EInt of int
 
 (** Represents the possible nodes of an AST, a literal that holds
  *  an int, and the sum of two ASTs.
  *)
-type ast = ELit of int | ESum of (ast * ast)
+type ast = ELit of int | EExpr of ((int->int->int) * ast * ast)
 
 (** Raised when constructing the AST and syntax is wrong *)
 exception Invalid_token of string
