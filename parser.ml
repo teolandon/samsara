@@ -39,7 +39,7 @@ let rec computeAST_h tokenList =
         let sum = ESum (tree1, tree2) in
         (match splitList ts with
         | (ERightParen, remaining) -> (sum, remaining)
-        | _ -> raise (Invalid_token "Addition expresion not closed")
+        | _ -> raise (Invalid_token "Addition expression not closed")
         )
     | _ -> raise (Invalid_token "No + after open paren")
   in

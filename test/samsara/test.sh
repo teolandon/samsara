@@ -1,5 +1,10 @@
 #!/bin/bash
 
-# Just a STUB for now
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-exit 0
+SAMSARA="${DIR}/../../samsara"
+FILES=$(ls $DIR/arith/)
+
+cd "${DIR}/arith"
+$SAMSARA $FILES > "${DIR}/generated.out" 2>&1
+diff "${DIR}/correct.out" "${DIR}/generated.out"

@@ -7,10 +7,11 @@ let addFile filename =
   files := filename :: !files
 
 let compile file =
+  printf "%s:\n\t" file;
   try
     let tokens = Lexer.lex file in
     let result = Parser.createAndEvaluate tokens in
-    printf "%s:\n\t%d\n" file result
+    printf "%d\n" result
   with
   | Parser.Invalid_token str -> printf "Parser error: %s\n" str
   | Lexer.Lexing_error str  -> printf "Lexing error: %s\n" str
