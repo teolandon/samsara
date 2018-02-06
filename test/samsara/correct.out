@@ -20,3 +20,15 @@
 	Lexing error: Invalid string
 010-mult.arith:
 	100
+011-comp.arith:
+	true
+012-comp2.arith:
+	true
+013-comp3.arith:
+	false
+014-boolstuff.arith:
+	7
+015-type-mismatch.arith:
+	Invalid expression: Integer operation takes integers only
+016-bool-mismatch.arith:
+	Invalid expression: "if" did not receive a boolean as condition

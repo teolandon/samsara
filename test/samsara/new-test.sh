@@ -18,5 +18,4 @@ fi
 
 echo "$TEXT" > "$DIR/arith/${array[NUM]}-${NAME}"
 
-printf '%s:\n\t%s' "$NAME" "$RESULT" >> "$DIR/correct.out"
-
+printf '%s:\n\t%s\n' "${array[NUM]}-$NAME" "$RESULT" >> "$DIR/correct.out"
