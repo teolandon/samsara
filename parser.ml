@@ -13,17 +13,23 @@ type eop =
 
 type ecomp =
   | ELess
+  | ELessEq
   | EGreater
+  | EGreaterEq
 
 let string_of_ecomp (comp:ecomp) =
   match comp with
-  | ELess    -> "<"
-  | EGreater -> ">"
+  | ELess      -> "<"
+  | ELessEq    -> "<="
+  | EGreater   -> ">"
+  | EGreaterEq -> ">="
 
 let comp_of_ecomp (comp:ecomp) =
   match comp with
-  | ELess    -> ( < )
-  | EGreater -> ( > )
+  | ELess      -> ( < )
+  | ELessEq    -> ( <= )
+  | EGreater   -> ( > )
+  | EGreaterEq -> ( >= )
 
 let safe_division int1 int2 =
   match int2 with

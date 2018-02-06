@@ -32,6 +32,14 @@ let is_alphabetic ch =
   | 'A'..'Z' -> true
   | _        -> false
 
+let is_chevron ch =
+  match ch with
+  | '<' | '>' -> true
+  | _         -> false
+
+let safe_seekback ic =
+  seek_in ic ((pos_in ic) - 1)
+
 let string_of_charlist chars =
   let buf = Buffer.create (List.length chars) in
   List.iter (Buffer.add_char buf) chars;
@@ -46,7 +54,7 @@ let rec read_int ic digit_list =
         calc_int (curr_mult * 10) (new_part_int + curr_int) t
   in
   let finalize_int () =
-    seek_in ic (pos_in ic - 1);
+    safe_seekback ic;
     calc_int 1 0 digit_list
   in
   let next = safe_read_char ic in
@@ -77,7 +85,7 @@ let rec lex_h ic tokenList =
     read_string ic [ch]
   in
   let ch = safe_read_char ic in
-  (match ch with
+  match ch with
   | None  -> List.rev tokenList
   | Some c ->
       let newList =
@@ -89,8 +97,21 @@ let rec lex_h ic tokenList =
         | '*'   -> Parser.EOp Parser.EMult :: tokenList
         | '/'   -> Parser.EOp Parser.EDiv :: tokenList
         | '%'   -> Parser.EOp Parser.EMod :: tokenList
-        | '<'   -> Parser.EComp Parser.ELess :: tokenList
-        | '>'   -> Parser.EComp Parser.EGreater :: tokenList
+        | ch when is_chevron ch ->
+            let next = safe_read_char ic in
+            let (token:Parser.token) =
+              match (ch, next) with
+              | ('<', Some '=') -> Parser.EComp Parser.ELessEq
+              | ('>', Some '=') -> Parser.EComp Parser.EGreaterEq
+              | ('<', None) -> Parser.EComp Parser.ELess
+              | ('>', None) -> Parser.EComp Parser.EGreater
+              | ('<', Some ch) when ends_int ch ->
+                  safe_seekback ic; Parser.EComp Parser.ELess
+              | ('>', Some ch) when ends_int ch ->
+                  safe_seekback ic; Parser.EComp Parser.EGreater
+              | _ -> raise (Lexing_error "Invalid sequence after comparison")
+            in
+            token :: tokenList
         | ch when is_alphabetic ch ->
             (match (read_string_h ch) with
             | "true"  -> Parser.EBool true  :: tokenList
@@ -104,7 +125,6 @@ let rec lex_h ic tokenList =
         |  _  -> raise (Lexing_error "Invalid char")
       in
       lex_h ic newList
-  )
 
 let lex file =
   let ic = open_in file in

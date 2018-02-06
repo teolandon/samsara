@@ -8,7 +8,7 @@ exception Invalid_expr of string
 type eop = EPlus | EMinus | EMult | EDiv | EMod
 
 (** Represents the tokens for comparison operations *)
-type ecomp = ELess | EGreater
+type ecomp = ELess | ELessEq | EGreater | EGreaterEq
 
 (** Represents the tokens that make up the Samsara syntax *)
 type token = ELeftParen | ERightParen | EIf | EOp of eop
