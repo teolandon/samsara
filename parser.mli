@@ -7,18 +7,28 @@ exception Invalid_expr of string
 (** Represents the tokens for arithmetic operations *)
 type eop = EPlus | EMinus | EMult | EDiv | EMod
 
+(** Represents the tokens for comparison operations *)
+type ecomp = ELess | EGreater
+
 (** Represents the tokens that make up the Samsara syntax *)
-type token = ELeftParen | ERightParen | EOp of eop | EInt of int
+type token = ELeftParen | ERightParen | EIf | EOp of eop
+           | EComp of ecomp | EBool of bool | EInt of int
+
+(** AST literals, simplified values *)
+type literal = EInt of int | EBool of bool
 
 (** Represents the possible nodes of an AST, a literal that holds
  *  an int, and the sum of two ASTs.
  *)
-type ast = ELit of int | EExpr of ((int->int->int) * ast * ast)
+type ast = ELit of literal
+         | EIf      of (ast * ast * ast)
+         | EIntExpr of ((int->int->int) * ast * ast)
+         | EComp    of ((int->int->bool) * ast * ast)
 
-(** Evaluates the given AST and returns the int value of
- *  its evaluation
+(** Evaluates the given AST and returns the simplified ast value of its
+ * evaluation
  *)
-val evaluateAST : ast -> int
+val evaluateAST : ast -> ast
 
 (** Computes an AST according to the given token list,
  *  raising any exceptions if the syntax is wrong
@@ -26,7 +36,7 @@ val evaluateAST : ast -> int
 val computeAST : token list -> ast
 
 (** Equivalent to (evaluateAST (computeAST tokenList)) *)
-val createAndEvaluate : token list -> int
+val createAndEvaluate : token list -> ast
 
 (** Prints an AST using indentation to show branches *)
 val printAST : ast -> unit
