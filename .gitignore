@@ -24,4 +24,5 @@ setup.log
 /samsara
 
 # test files
-generated.out
+test/samsara/generated.out
+test/simplecli/generated.out
