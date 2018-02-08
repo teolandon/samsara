@@ -28,8 +28,7 @@ let is_digit ch =
 
 let is_alphabetic ch =
   match ch with
-  | 'a'..'z' -> true
-  | 'A'..'Z' -> true
+  | 'a'..'z' | 'A'..'Z' -> true
   | _        -> false
 
 let is_chevron ch =
@@ -45,7 +44,15 @@ let string_of_charlist chars =
   List.iter (Buffer.add_char buf) chars;
   Buffer.contents buf
 
-let rec read_int ic digit_list =
+let to_mantissa i =
+  let rec get_divident i =
+    match i with
+    | 0 -> 0
+    | _ -> 10 * (get_divident (i / 10))
+  in
+  (float_of_int i) /. (float_of_int (get_divident i))
+
+let rec read_num ic digit_list:(Parser.token) =
   let rec calc_int curr_mult curr_int curr_digit_list =
     match curr_digit_list with
     | []     -> curr_int
@@ -55,14 +62,21 @@ let rec read_int ic digit_list =
   in
   let finalize_int () =
     safe_seekback ic;
-    calc_int 1 0 digit_list
+    Parser.EInt (calc_int 1 0 digit_list)
   in
   let next = safe_read_char ic in
   match next with
   | None                     -> finalize_int ()
   | Some ch when ends_int ch -> finalize_int ()
   | Some digit when is_digit digit ->
-      read_int ic ((int_of_char digit)::digit_list)
+      read_num ic ((int_of_char digit)::digit_list)
+  | Some '.' ->
+      let float_integral   = float_of_int (calc_int 1 0 digit_list) in
+      let float_fractional = match read_num ic [] with
+      | Parser.EInt fractional -> to_mantissa fractional
+      | _ -> raise (Lexing_error "Bad floating point number")
+      in
+      Parser.EFloat (float_integral +. float_fractional)
   | _ -> raise (Lexing_error "Invalid end of integer")
 
 let rec read_string ic char_list =
@@ -78,8 +92,8 @@ let rec read_string ic char_list =
   | _ -> raise (Lexing_error "Invalid end of string")
 
 let rec lex_h ic tokenList =
-  let read_int_h i =
-    read_int ic [i]
+  let read_num_h i =
+    read_num ic [i]
   in
   let read_string_h ch =
     read_string ic [ch]
@@ -120,7 +134,7 @@ let rec lex_h ic tokenList =
             | _       -> raise (Lexing_error "Invalid string")
             )
         | '0'..'9' ->
-            (Parser.EInt (read_int_h (int_of_char c))) :: tokenList
+            read_num_h (int_of_char c) :: tokenList
         | ' ' | '\n' | '\r' | '\t' -> tokenList
         |  _  -> raise (Lexing_error "Invalid char")
       in

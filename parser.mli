@@ -13,9 +13,10 @@ type ecomp = ELess | ELessEq | EGreater | EGreaterEq
 (** Represents the tokens that make up the Samsara syntax *)
 type token = ELeftParen | ERightParen | EIf | EOp of eop
            | EComp of ecomp | EBool of bool | EInt of int
+           | EFloat of float
 
 (** AST literals, simplified values *)
-type literal = EInt of int | EBool of bool
+type literal = ELitInt of int | ELitBool of bool
 
 (** Represents the possible nodes of an AST, a literal that holds
  *  an int, and the sum of two ASTs.

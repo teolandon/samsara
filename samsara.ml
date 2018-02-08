@@ -12,8 +12,8 @@ let compile file =
     let tokens = Lexer.lex file in
     let result = Parser.createAndEvaluate tokens in
     match result with
-    | Parser.ELit (Parser.EInt  a) -> printf "%d\n" a
-    | Parser.ELit (Parser.EBool b) -> printf "%b\n" b
+    | Parser.ELit (Parser.ELitInt  a) -> printf "%d\n" a
+    | Parser.ELit (Parser.ELitBool b) -> printf "%b\n" b
     | _ -> printf "Tree not completely evaluated"
   with
   | Parser.Invalid_token str -> printf "Parser error: %s\n" str

@@ -55,10 +55,11 @@ let string_of_eop (opr:eop) =
 type token =
   | ELeftParen | ERightParen
   | EIf
-  | EOp   of eop
-  | EComp of ecomp
-  | EBool of bool
-  | EInt  of int
+  | EOp    of eop
+  | EComp  of ecomp
+  | EBool  of bool
+  | EInt   of int
+  | EFloat of float
 
 let string_of_token t =
   match t with
@@ -71,8 +72,8 @@ let string_of_token t =
   | EIf      -> "if"
 
 type literal =
-  | EInt  of int
-  | EBool of bool
+  | ELitInt  of int
+  | ELitBool of bool
 
 type ast =
   | ELit      of literal
@@ -122,8 +123,8 @@ let rec computeAST_h tokenList =
   in
   let (t, ts) = splitList tokenList in
   match t with
-  | EInt  x    -> ((ELit (EInt x)), ts)
-  | EBool b    -> ((ELit (EBool b)), ts)
+  | EInt  x    -> ((ELit (ELitInt x)), ts)
+  | EBool b    -> ((ELit (ELitBool b)), ts)
   | ELeftParen -> readOp ts
   | _          -> raise (Invalid_token "Expression not valid")
 
@@ -133,7 +134,7 @@ let rec evaluateAST tree:(ast) =
       let ev1 = evaluateAST tree1 in
       let ev2 = evaluateAST tree2 in
       (match (ev1, ev2) with
-      | (ELit (EInt a), ELit (EInt b)) -> ELit (EInt (op a b))
+      | (ELit (ELitInt a), ELit (ELitInt b)) -> ELit (ELitInt (op a b))
       | _ ->
           raise (Invalid_expr "Integer operation takes integers only")
       )
@@ -141,15 +142,15 @@ let rec evaluateAST tree:(ast) =
       let ev1 = evaluateAST tree1 in
       let ev2 = evaluateAST tree2 in
       (match (ev1, ev2) with
-      | (ELit (EInt a), ELit (EInt b)) -> ELit (EBool (op a b))
+      | (ELit (ELitInt a), ELit (ELitInt b)) -> ELit (ELitBool (op a b))
       | _ ->
           raise (Invalid_expr "Comparison only takes integers")
       )
   | EIf (cond, tree1, tree2) ->
       let cond = evaluateAST cond  in
       (match cond with
-      | ELit (EBool true)  -> evaluateAST tree1
-      | ELit (EBool false) -> evaluateAST tree2
+      | ELit (ELitBool true)  -> evaluateAST tree1
+      | ELit (ELitBool false) -> evaluateAST tree2
       | _ -> raise (Invalid_expr "\"if\" did not receive a boolean as condition")
       )
   | ELit _ as lit -> lit
