@@ -65,15 +65,17 @@ let string_of_token t =
   match t with
   | ELeftParen  -> "("
   | ERightParen -> ")"
-  | EOp   op -> string_of_eop op
-  | EComp op -> string_of_ecomp op
-  | EBool b  -> string_of_bool b
-  | EInt  a  -> string_of_int a
-  | EIf      -> "if"
+  | EOp    op -> string_of_eop op
+  | EComp  op -> string_of_ecomp op
+  | EBool  b  -> string_of_bool b
+  | EInt   a  -> string_of_int a
+  | EFloat f  -> string_of_float f
+  | EIf       -> "if"
 
 type literal =
-  | ELitInt  of int
-  | ELitBool of bool
+  | ELitInt   of int
+  | ELitFloat of float
+  | ELitBool  of bool
 
 type ast =
   | ELit      of literal
@@ -123,8 +125,9 @@ let rec computeAST_h tokenList =
   in
   let (t, ts) = splitList tokenList in
   match t with
-  | EInt  x    -> ((ELit (ELitInt x)), ts)
-  | EBool b    -> ((ELit (ELitBool b)), ts)
+  | EInt   x   -> ((ELit (ELitInt x)), ts)
+  | EBool  b   -> ((ELit (ELitBool b)), ts)
+  | EFloat f   -> ((ELit (ELitFloat f)), ts)
   | ELeftParen -> readOp ts
   | _          -> raise (Invalid_token "Expression not valid")
 

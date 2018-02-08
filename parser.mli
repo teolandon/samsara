@@ -16,7 +16,7 @@ type token = ELeftParen | ERightParen | EIf | EOp of eop
            | EFloat of float
 
 (** AST literals, simplified values *)
-type literal = ELitInt of int | ELitBool of bool
+type literal = ELitInt of int | ELitFloat of float | ELitBool of bool
 
 (** Represents the possible nodes of an AST, a literal that holds
  *  an int, and the sum of two ASTs.
