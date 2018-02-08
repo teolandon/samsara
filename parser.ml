@@ -24,26 +24,6 @@ let string_of_ecomp (comp:ecomp) =
   | EGreater   -> ">"
   | EGreaterEq -> ">="
 
-let comp_of_ecomp (comp:ecomp) =
-  match comp with
-  | ELess      -> ( < )
-  | ELessEq    -> ( <= )
-  | EGreater   -> ( > )
-  | EGreaterEq -> ( >= )
-
-let safe_division int1 int2 =
-  match int2 with
-  | 0 -> raise (Invalid_expr "Divide by 0")
-  | _ -> int1 / int2
-
-let op_of_eop (opr:eop) =
-  match opr with
-  | EPlus -> ( + )
-  | EMinus -> ( - )
-  | EMult -> ( * )
-  | EDiv -> ( safe_division )
-  | EMod -> ( mod )
-
 let string_of_eop (opr:eop) =
   match opr with
   | EPlus -> "+"
@@ -72,17 +52,85 @@ let string_of_token t =
   | EFloat f  -> string_of_float f
   | EIf       -> "if"
 
-type literal =
+type number =
   | ELitInt   of int
   | ELitFloat of float
-  | ELitBool  of bool
 
 type ast =
-  | ELit      of literal
+  | ENum      of number
+  | EBool     of bool
   | EIf       of (ast * ast * ast)
-  | EIntExpr  of ((int->int->int)  * ast * ast)
-  | EComp     of ((int->int->bool) * ast * ast)
+  | ENumExpr  of ((number->number->number) * ast * ast)
+  | EComp     of ((number->number->bool)   * ast * ast)
   (* | EBoolExpr of ((bool->bool->bool) * ast * ast) *)
+
+let comp_helper num1 num2 int_comp float_comp =
+  match (num1, num2) with
+  | (ELitInt   a, ELitInt   b) -> int_comp a b
+  | (ELitFloat a, ELitFloat b) -> float_comp a b
+  | (ELitInt   a, ELitFloat b) -> float_comp (float_of_int a) b
+  | (ELitFloat a, ELitInt   b) -> float_comp a (float_of_int b)
+
+let less_than num1 num2 =
+  comp_helper num1 num2 ( < ) ( < )
+
+let greater_than num1 num2 =
+  comp_helper num1 num2 ( > ) ( > )
+
+let less_than_eq num1 num2 =
+  comp_helper num1 num2 ( <= ) ( <= )
+
+let greater_than_eq num1 num2 =
+  comp_helper num1 num2 ( >= ) ( >= )
+
+let comp_of_ecomp (comp:ecomp) =
+  match comp with
+  | ELess      -> less_than
+  | ELessEq    -> less_than_eq
+  | EGreater   -> greater_than
+  | EGreaterEq -> greater_than_eq
+
+let opr_helper num1 num2 int_opr float_opr =
+  match (num1, num2) with
+  | (ELitInt   a, ELitInt   b) -> ELitInt (int_opr a b)
+  | (ELitFloat a, ELitFloat b) -> ELitFloat (float_opr a b)
+  | (ELitInt   a, ELitFloat b) -> ELitFloat (float_opr (float_of_int a) b)
+  | (ELitFloat a, ELitInt   b) -> ELitFloat (float_opr a (float_of_int b))
+
+let plus num1 num2 =
+  opr_helper num1 num2 ( + ) ( +. )
+
+let minus num1 num2 =
+  opr_helper num1 num2 ( - ) ( -. )
+
+let times num1 num2 =
+  opr_helper num1 num2 ( * ) ( *. )
+
+let division num1 num2 =
+  match num2 with
+  | ELitInt 0 | ELitFloat 0.0 -> raise (Invalid_expr "Divide by 0")
+  | _ -> opr_helper num1 num2 ( / ) ( /. )
+
+let modulo num1 num2 =
+  let raise_exc dummy1 dummy2 =
+    raise (Invalid_expr "Modulo not supported with floats")
+  in
+  opr_helper num1 num2 ( mod ) ( raise_exc )
+
+let comp_of_ecomp (comp:ecomp) =
+  match comp with
+  | ELess      -> less_than
+  | ELessEq    -> less_than_eq
+  | EGreater   -> greater_than
+  | EGreaterEq -> greater_than_eq
+
+let op_of_eop (opr:eop) =
+  match opr with
+  | EPlus -> ( plus )
+  | EMinus -> ( minus )
+  | EMult -> ( times )
+  | EDiv -> ( division )
+  | EMod -> ( modulo )
 
 let rec print_tokens_h token_list =
   match token_list with
@@ -103,7 +151,7 @@ let rec computeAST_h tokenList =
           let op = op_of_eop a in
           let (tree1, ts) = computeAST_h ts in
           let (tree2, ts) = computeAST_h ts in
-          let result = EIntExpr (op, tree1, tree2) in
+          let result = ENumExpr (op, tree1, tree2) in
           (result, ts)
       | EComp a ->
           let comp = comp_of_ecomp a in
@@ -125,19 +173,19 @@ let rec computeAST_h tokenList =
   in
   let (t, ts) = splitList tokenList in
   match t with
-  | EInt   x   -> ((ELit (ELitInt x)), ts)
-  | EBool  b   -> ((ELit (ELitBool b)), ts)
-  | EFloat f   -> ((ELit (ELitFloat f)), ts)
+  | EInt   x   -> ((ENum (ELitInt x)), ts)
+  | EFloat f   -> ((ENum (ELitFloat f)), ts)
+  | EBool  b   -> (EBool b, ts)
   | ELeftParen -> readOp ts
   | _          -> raise (Invalid_token "Expression not valid")
 
 let rec evaluateAST tree:(ast) =
   match tree with
-  | EIntExpr (op, tree1, tree2) ->
+  | ENumExpr (op, tree1, tree2) ->
       let ev1 = evaluateAST tree1 in
       let ev2 = evaluateAST tree2 in
       (match (ev1, ev2) with
-      | (ELit (ELitInt a), ELit (ELitInt b)) -> ELit (ELitInt (op a b))
+      | (ENum a, ENum b) -> ENum (op a b)
       | _ ->
           raise (Invalid_expr "Integer operation takes integers only")
       )
@@ -145,18 +193,19 @@ let rec evaluateAST tree:(ast) =
       let ev1 = evaluateAST tree1 in
       let ev2 = evaluateAST tree2 in
       (match (ev1, ev2) with
-      | (ELit (ELitInt a), ELit (ELitInt b)) -> ELit (ELitBool (op a b))
+      | (ENum a, ENum b) -> EBool (op a b)
       | _ ->
           raise (Invalid_expr "Comparison only takes integers")
       )
   | EIf (cond, tree1, tree2) ->
       let cond = evaluateAST cond  in
       (match cond with
-      | ELit (ELitBool true)  -> evaluateAST tree1
-      | ELit (ELitBool false) -> evaluateAST tree2
+      | EBool true  -> evaluateAST tree1
+      | EBool false -> evaluateAST tree2
       | _ -> raise (Invalid_expr "\"if\" did not receive a boolean as condition")
       )
-  | ELit _ as lit -> lit
+  | EBool _ as b   -> b
+  | ENum  _ as num -> num
 
 let computeAST tokenList =
   let (tree, remainingTokens) = computeAST_h tokenList in

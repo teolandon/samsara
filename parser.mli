@@ -15,16 +15,17 @@ type token = ELeftParen | ERightParen | EIf | EOp of eop
            | EComp of ecomp | EBool of bool | EInt of int
            | EFloat of float
 
-(** AST literals, simplified values *)
-type literal = ELitInt of int | ELitFloat of float | ELitBool of bool
+(** AST numbers, simplified values *)
+type number = ELitInt of int | ELitFloat of float
 
 (** Represents the possible nodes of an AST, a literal that holds
  *  an int, and the sum of two ASTs.
  *)
-type ast = ELit of literal
+type ast = ENum of number
+         | EBool of bool
          | EIf      of (ast * ast * ast)
-         | EIntExpr of ((int->int->int) * ast * ast)
-         | EComp    of ((int->int->bool) * ast * ast)
+         | ENumExpr of ((number->number->number) * ast * ast)
+         | EComp    of ((number->number->bool) * ast * ast)
 
 (** Evaluates the given AST and returns the simplified ast value of its
  * evaluation
