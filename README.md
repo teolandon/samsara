@@ -119,12 +119,24 @@ testing and keep commits clean and correct. Refer to the HOOKS.md file in the
 
 # Changelog
 
+## Assignment 02 - 2018-02-08
+
+### Added
+* samsara compiler source code.
+* Documentation on samsara syntax.
+* Tests for samsara in `test/samsara/`.
+* Script to easily add more tests for samsara in `test/samsara/new-test`.
+* Makefile target for `samsara`.
+
+### Changed
+* Tests for simplecli moved to  `test/simplecli/`
+
 ## Assignment 01 - 2018-01-30
 
 ### Added
-* simplecli source code
-* Tests for simplecli in `test/`
-* Makefile with targets for `make`, `clean` and `test`
+* simplecli source code.
+* Tests for simplecli in `test/`.
+* Makefile with targets for `make`, `clean` and `test`.
 
 ### Changed
 * None
