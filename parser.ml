@@ -40,6 +40,7 @@ type token =
   | EBool  of bool
   | EInt   of int
   | EFloat of float
+  | ENaN
 
 let string_of_token t =
   match t with
@@ -51,10 +52,12 @@ let string_of_token t =
   | EInt   a  -> string_of_int a
   | EFloat f  -> string_of_float f
   | EIf       -> "if"
+  | ENaN      -> "NaN"
 
 type number =
   | ELitInt   of int
   | ELitFloat of float
+  | ELitNaN
 
 type ast =
   | ENum      of number
@@ -66,6 +69,7 @@ type ast =
 
 let comp_helper num1 num2 int_comp float_comp =
   match (num1, num2) with
+  | (_, ELitNaN) | (ELitNaN, _) -> false
   | (ELitInt   a, ELitInt   b) -> int_comp a b
   | (ELitFloat a, ELitFloat b) -> float_comp a b
   | (ELitInt   a, ELitFloat b) -> float_comp (float_of_int a) b
@@ -92,13 +96,11 @@ let comp_of_ecomp (comp:ecomp) =
 
 let opr_helper num1 num2 int_opr float_opr =
   match (num1, num2) with
-  | (ELitInt   a, ELitInt   b) -> ELitInt (int_opr a b)
-  | (ELitFloat a, ELitFloat b) ->
-      ELitFloat (float_opr a b)
-  | (ELitInt   a, ELitFloat b) ->
-      ELitFloat (float_opr (float_of_int a) b)
-  | (ELitFloat a, ELitInt   b) ->
-      ELitFloat (float_opr a (float_of_int b))
+  | (_, ELitNaN) | (ELitNaN, _) -> ELitNaN
+  | (ELitInt   a, ELitInt   b)  -> ELitInt (int_opr a b)
+  | (ELitFloat a, ELitFloat b)  -> ELitFloat (float_opr a b)
+  | (ELitInt   a, ELitFloat b)  -> ELitFloat (float_opr (float_of_int a) b)
+  | (ELitFloat a, ELitInt   b)  -> ELitFloat (float_opr a (float_of_int b))
 
 let plus num1 num2 =
   opr_helper num1 num2 ( + ) ( +. )
@@ -110,8 +112,13 @@ let times num1 num2 =
   opr_helper num1 num2 ( * ) ( *. )
 
 let division num1 num2 =
-  match num2 with
-  | ELitInt 0 | ELitFloat 0.0 -> raise (Invalid_expr "Divide by 0")
+  match (num1, num2) with
+  | (ELitInt 0, ELitInt 0)
+  | (ELitFloat 0.0, ELitInt 0)
+  | (ELitInt 0, ELitFloat 0.0)
+  | (ELitFloat 0.0, ELitFloat 0.0) -> ELitNaN
+  | (_, ELitInt 0) | (_, ELitFloat 0.0) ->
+      raise (Invalid_expr "Divide by 0")
   | _ -> opr_helper num1 num2 ( / ) ( /. )
 
 let modulo num1 num2 =
@@ -143,7 +150,8 @@ let rec print_tokens token_list =
 let rec computeAST_h tokenList =
   let splitList tokens =
     match tokens with
-    | []      -> raise (Invalid_token "Expression not valid")
+    | []      -> raise (Invalid_token
+    "Expression not valid, probably missing parens")
     | (t::ts) -> (t, ts)
   in
   let readOp tokens =
@@ -178,6 +186,7 @@ let rec computeAST_h tokenList =
   match t with
   | EInt   x   -> ((ENum (ELitInt x)), ts)
   | EFloat f   -> ((ENum (ELitFloat f)), ts)
+  | ENaN       -> ((ENum ELitNaN), ts)
   | EBool  b   -> (EBool b, ts)
   | ELeftParen -> readOp ts
   | _          -> raise (Invalid_token "Expression not valid")

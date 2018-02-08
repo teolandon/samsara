@@ -14,7 +14,8 @@ let compile file =
     match result with
     | Parser.ENum (Parser.ELitInt   a) -> printf "%d\n" a
     | Parser.ENum (Parser.ELitFloat f) -> printf "%f\n" f
-    | Parser.EBool b -> printf "%b\n" b
+    | Parser.ENum Parser.ELitNaN       -> printf "NaN\n"
+    | Parser.EBool b    -> printf "%b\n" b
     | _ -> printf "Tree not completely evaluated"
   with
   | Parser.Invalid_token str -> printf "Parser error: %s\n" str

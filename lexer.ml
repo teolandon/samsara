@@ -83,6 +83,7 @@ let rec read_num ic digit_list:(Parser.token) =
 
 let rec read_string ic char_list =
   let finalize_str () =
+    safe_seekback ic;
     string_of_charlist (List.rev char_list)
   in
   let next = safe_read_char ic in
@@ -132,7 +133,8 @@ let rec lex_h ic tokenList =
             (match (read_string_h ch) with
             | "true"  -> Parser.EBool true  :: tokenList
             | "false" -> Parser.EBool false :: tokenList
-            | "if"    -> Parser.EIf :: tokenList
+            | "if"    -> Parser.EIf         :: tokenList
+            | "NaN"   -> Parser.ENaN        :: tokenList
             | _       -> raise (Lexing_error "Invalid string")
             )
         | '0'..'9' ->

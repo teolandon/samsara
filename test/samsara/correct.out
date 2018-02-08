@@ -7,7 +7,7 @@
 003-minus.arith:
 	29
 004-no-right-paren.arith:
-	Parser error: Expression not valid
+	Parser error: Expression not valid, probably missing parens
 005-no-spaces.arith:
 	7
 006-num.arith:
@@ -36,3 +36,7 @@
 	5.200000
 018-second-float.arith:
 	5.200000
+019-nan-stuff.arith:
+	NaN
+020-nan-taint.arith:
+	NaN
