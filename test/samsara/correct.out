@@ -40,3 +40,15 @@
 	NaN
 020-nan-taint.arith:
 	NaN
+021-bad-float.arith:
+	Lexing error: Bad floating point number
+022-bad-float.arith:
+	5.600000
+023-comp-float.arith:
+	3.100000
+024-comp-float.arith:
+	2.100000
+025-nan-taint-again.arith:
+	NaN
+026-nan-taint-again.arith:
+	false
