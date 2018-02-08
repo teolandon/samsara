@@ -27,6 +27,8 @@ type ast = ENum of number
          | ENumExpr of ((number->number->number) * ast * ast)
          | EComp    of ((number->number->bool) * ast * ast)
 
+val print_tokens : token list -> unit
+
 (** Evaluates the given AST and returns the simplified ast value of its
  * evaluation
  *)

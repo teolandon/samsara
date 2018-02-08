@@ -32,3 +32,5 @@
 	Invalid expression: Integer operation takes integers only
 016-bool-mismatch.arith:
 	Invalid expression: "if" did not receive a boolean as condition
+017-first-float.arith:
+	5.200000

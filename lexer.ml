@@ -1,3 +1,5 @@
+open Printf
+
 (* Returns the numeric value of the given char, given it's a digit *)
 let int_of_char ch =
   (Pervasives.int_of_char ch) - 48
@@ -47,9 +49,10 @@ let string_of_charlist chars =
 let to_mantissa i =
   let rec get_divident i =
     match i with
-    | 0 -> 0
+    | 0 -> 1
     | _ -> 10 * (get_divident (i / 10))
   in
+  let divident = get_divident i in
   (float_of_int i) /. (float_of_int (get_divident i))
 
 let rec read_num ic digit_list:(Parser.token) =

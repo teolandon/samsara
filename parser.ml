@@ -93,9 +93,14 @@ let comp_of_ecomp (comp:ecomp) =
 let opr_helper num1 num2 int_opr float_opr =
   match (num1, num2) with
   | (ELitInt   a, ELitInt   b) -> ELitInt (int_opr a b)
-  | (ELitFloat a, ELitFloat b) -> ELitFloat (float_opr a b)
-  | (ELitInt   a, ELitFloat b) -> ELitFloat (float_opr (float_of_int a) b)
-  | (ELitFloat a, ELitInt   b) -> ELitFloat (float_opr a (float_of_int b))
+  | (ELitFloat a, ELitFloat b) ->
+      ELitFloat (float_opr a b)
+  | (ELitInt   a, ELitFloat b) ->
+      print_endline "Float?";
+      ELitFloat (float_opr (float_of_int a) b)
+  | (ELitFloat a, ELitInt   b) ->
+      print_endline "this?";
+      ELitFloat (float_opr a (float_of_int b))
 
 let plus num1 num2 =
   opr_helper num1 num2 ( + ) ( +. )
@@ -132,10 +137,10 @@ let op_of_eop (opr:eop) =
   | EDiv -> ( division )
   | EMod -> ( modulo )
 
-let rec print_tokens_h token_list =
+let rec print_tokens token_list =
   match token_list with
   | [] -> ()
-  | (t::ts) -> print_endline (string_of_token t); print_tokens_h ts
+  | (t::ts) -> print_endline (string_of_token t); print_tokens ts
 
 let rec computeAST_h tokenList =
   let splitList tokens =
@@ -220,8 +225,9 @@ let createAndEvaluate tokenList =
 (* let rec printAST_h tree depth = *)
 (*   let indent = String.make depth ' ' in *)
 (*   match tree with *)
-(*   | ELit a -> printf "%s%d\n" indent a *)
-(*   | EIntExpr (op, tree1, tree2) -> *)
+(*   | ENum (ELitInt a) -> printf "%s%d\n" indent a *)
+(*   | ENum (ELitFloat a) -> printf "%s%f\n" indent a *)
+(*   | ENumExpr (op, tree1, tree2) -> *)
 (*       printf "%sExpr of:\n" indent; *)
 (*       printAST_h tree1 (depth+1); *)
 (*       printAST_h tree2 (depth+1); *)
