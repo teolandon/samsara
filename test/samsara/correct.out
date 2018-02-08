@@ -34,3 +34,5 @@
 	Invalid expression: "if" did not receive a boolean as condition
 017-first-float.arith:
 	5.200000
+018-second-float.arith:
+	5.200000

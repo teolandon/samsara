@@ -96,10 +96,8 @@ let opr_helper num1 num2 int_opr float_opr =
   | (ELitFloat a, ELitFloat b) ->
       ELitFloat (float_opr a b)
   | (ELitInt   a, ELitFloat b) ->
-      print_endline "Float?";
       ELitFloat (float_opr (float_of_int a) b)
   | (ELitFloat a, ELitInt   b) ->
-      print_endline "this?";
       ELitFloat (float_opr a (float_of_int b))
 
 let plus num1 num2 =

@@ -52,7 +52,6 @@ let to_mantissa i =
     | 0 -> 1
     | _ -> 10 * (get_divident (i / 10))
   in
-  let divident = get_divident i in
   (float_of_int i) /. (float_of_int (get_divident i))
 
 let rec read_num ic digit_list:(Parser.token) =
