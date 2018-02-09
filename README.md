@@ -41,10 +41,9 @@ Where:
     is given to it, and if the boolean evaluates to `false`, then the `if`
     expression evaluates to the second `e` expression that is given to it.
 
-Some operations have margin for errors and type mismatches. These are described
-below:
-
-[[[PLACEHOLDER]]]
+Some operations have margin for errors and type mismatches. These are usually
+raised with an error message describing the error, but not its location, because
+that would be a lot of work.
 
 Some more notes:
 
@@ -130,6 +129,9 @@ testing and keep commits clean and correct. Refer to the HOOKS.md file in the
 
 ### Changed
 * Tests for simplecli moved to  `test/simplecli/`
+
+### Known bugs
+* None
 
 ## Assignment 01 - 2018-01-30
 
