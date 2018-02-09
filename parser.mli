@@ -4,6 +4,18 @@ exception Invalid_token of string
 (** Raised when evaluating an AST and an illegal expression is evaluated *)
 exception Invalid_expr of string
 
+(** AST numbers, simplified values *)
+type number = ELitInt of int | ELitFloat of float | ELitNaN
+
+(** Represents the possible nodes of an AST, a literal that holds
+ *  an int, and the sum of two ASTs.
+ *)
+type ast = ENum     of number
+         | EBool    of bool
+         | EIfExpr  of (ast * ast * ast)
+         | ENumExpr of ((number->number->number) * ast * ast)
+         | ENumComp of ((number->number->bool) * ast * ast)
+
 (** Represents the tokens for arithmetic operations *)
 type eop = EPlus | EMinus | EMult | EDiv | EMod
 
@@ -14,18 +26,6 @@ type ecomp = ELess | ELessEq | EGreater | EGreaterEq
 type token = ELeftParen | ERightParen | EIf | EOp of eop
            | EComp of ecomp | EBool of bool | EInt of int
            | EFloat of float | ENaN
-
-(** AST numbers, simplified values *)
-type number = ELitInt of int | ELitFloat of float | ELitNaN
-
-(** Represents the possible nodes of an AST, a literal that holds
- *  an int, and the sum of two ASTs.
- *)
-type ast = ENum of number
-         | EBool of bool
-         | EIf      of (ast * ast * ast)
-         | ENumExpr of ((number->number->number) * ast * ast)
-         | EComp    of ((number->number->bool) * ast * ast)
 
 val print_tokens : token list -> unit
 
