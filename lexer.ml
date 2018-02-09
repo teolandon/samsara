@@ -6,11 +6,19 @@ let int_of_char ch =
 
 exception Lexing_error of string
 
+(* Returns Some char if the stream still has characters left,
+ * and None if there are no characters left
+ *)
 let safe_read_char ic =
   try
     Some (input_char ic)
   with End_of_file ->
     None
+
+let seekback ic =
+  seek_in ic ((pos_in ic) - 1)
+
+(* Boolean checks for chars *)
 
 let is_whitespace ch =
   match ch with
@@ -38,14 +46,17 @@ let is_chevron ch =
   | '<' | '>' -> true
   | _         -> false
 
-let safe_seekback ic =
-  seek_in ic ((pos_in ic) - 1)
-
+(* Converts a list of chars to a string using the
+ * Buffer module in an attempt to be more efficient
+ *)
 let string_of_charlist chars =
   let buf = Buffer.create (List.length chars) in
   List.iter (Buffer.add_char buf) chars;
   Buffer.contents buf
 
+(* Converts an integer i to a floating point number equal to
+ * the representation 0.i
+ *)
 let to_mantissa i =
   let rec get_divident i =
     match i with
@@ -54,6 +65,9 @@ let to_mantissa i =
   in
   (float_of_int i) /. (float_of_int (get_divident i))
 
+(* Reads a number, returns either an integer literal or a
+ * float literal
+ *)
 let rec read_num ic digit_list:(Parser.token) =
   let rec calc_int curr_mult curr_int curr_digit_list =
     match curr_digit_list with
@@ -63,7 +77,7 @@ let rec read_num ic digit_list:(Parser.token) =
         calc_int (curr_mult * 10) (new_part_int + curr_int) t
   in
   let finalize_int () =
-    safe_seekback ic;
+    seekback ic;
     Parser.EInt (calc_int 1 0 digit_list)
   in
   let next = safe_read_char ic in
@@ -81,9 +95,13 @@ let rec read_num ic digit_list:(Parser.token) =
       Parser.EFloat (float_integral +. float_fractional)
   | _ -> raise (Lexing_error "Invalid end of integer")
 
+(* Reads a string from stream ic until it reaches a
+ * terminating character, and then seeks back to make
+ * sure that the terminating character is not consumed.
+ *)
 let rec read_string ic char_list =
   let finalize_str () =
-    safe_seekback ic;
+    seekback ic;
     string_of_charlist (List.rev char_list)
   in
   let next = safe_read_char ic in
@@ -94,6 +112,7 @@ let rec read_string ic char_list =
       read_string ic (ch::char_list)
   | _ -> raise (Lexing_error "Invalid end of string")
 
+(* Does the heavy lexing, with all the cases, etc. *)
 let rec lex_h ic tokenList =
   let read_num_h i =
     read_num ic [i]
@@ -123,9 +142,9 @@ let rec lex_h ic tokenList =
               | ('<', None) -> Parser.EComp Parser.ELess
               | ('>', None) -> Parser.EComp Parser.EGreater
               | ('<', Some ch) when ends_int ch ->
-                  safe_seekback ic; Parser.EComp Parser.ELess
+                  seekback ic; Parser.EComp Parser.ELess
               | ('>', Some ch) when ends_int ch ->
-                  safe_seekback ic; Parser.EComp Parser.EGreater
+                  seekback ic; Parser.EComp Parser.EGreater
               | _ -> raise (Lexing_error "Invalid sequence after comparison")
             in
             token :: tokenList

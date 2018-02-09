@@ -257,17 +257,3 @@ let rec evaluateAST tree:(ast) =
 let createAndEvaluate tokenList =
   let tree = computeAST tokenList in
   evaluateAST tree
-
-(* let rec printAST_h tree depth = *)
-(*   let indent = String.make depth ' ' in *)
-(*   match tree with *)
-(*   | ENum (ELitInt a) -> printf "%s%d\n" indent a *)
-(*   | ENum (ELitFloat a) -> printf "%s%f\n" indent a *)
-(*   | ENumExpr (op, tree1, tree2) -> *)
-(*       printf "%sExpr of:\n" indent; *)
-(*       printAST_h tree1 (depth+1); *)
-(*       printAST_h tree2 (depth+1); *)
-(*       printf "%s:fo rpxE\n" indent *)
-
-let printAST tree =
-  print_endline "PrintAST not implemented yet"

@@ -8,7 +8,8 @@ exception Invalid_expr of string
 type number = ELitInt of int | ELitFloat of float | ELitNaN
 
 (** Represents the possible nodes of an AST, a literal that holds
- *  an int, and the sum of two ASTs.
+ *  a number, a boolean, a numeric expression, comparison or an if
+ *  statement.
  *)
 type ast = ENum     of number
          | EBool    of bool
@@ -27,6 +28,7 @@ type token = ELeftParen | ERightParen | EIf | EOp of eop
            | EComp of ecomp | EBool of bool | EInt of int
            | EFloat of float | ENaN
 
+(** Prints a tokenlist to stdout *)
 val print_tokens : token list -> unit
 
 (** Evaluates the given AST and returns the simplified ast value of its
@@ -41,6 +43,3 @@ val computeAST : token list -> ast
 
 (** Equivalent to (evaluateAST (computeAST tokenList)) *)
 val createAndEvaluate : token list -> ast
-
-(** Prints an AST using indentation to show branches *)
-val printAST : ast -> unit
