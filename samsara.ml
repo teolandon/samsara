@@ -1,6 +1,11 @@
 (* Main file *)
 open Printf
 
+(* Mode flags *)
+
+let lex_flag   = ref false
+let parse_flag = ref false
+
 let files = ref []
 
 let addFile filename =
@@ -29,12 +34,14 @@ let rec compileFiles files =
       compile f;
       compileFiles fs
 
+let speclist = [
+  ("-lex", Arg.Set lex_flag, "prints the lexx'd list of tokens");
+  ("-parse", Arg.Set parse_flag, "prints the parsed AST");
+  ("--help", Arg.Unit (fun () -> ()), ""); (* Supresses flag *)
+]
+
 let main () =
-  Arg.parse [] addFile "this";
+  Arg.parse speclist addFile "this";
   compileFiles (List.rev !files)
-  (* let myAST = Parser.computeAST () in *)
-  (* let result = Parser.simplifyAST myAST in *)
-  (* Parser.printAST myAST; *)
-  (* printf "\n\nResult: %d\n" result *)
 
 let () = main ()
