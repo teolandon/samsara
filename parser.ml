@@ -36,15 +36,6 @@ type number =
   | ELitFloat of float
   | ELitNaN
 
-type ast =
-  | ENum     of number
-  | EBool    of bool
-  | EIfExpr  of (ast * ast * ast)
-  | ENumExpr of ((number->number->number) * ast * ast)
-  | ENumComp of ((number->number->bool)   * ast * ast)
-
-(* Tokens to be created by lexing *)
-
 type eop =
   | EPlus
   | EMinus
@@ -57,6 +48,15 @@ type ecomp =
   | ELessEq
   | EGreater
   | EGreaterEq
+
+type ast =
+  | ENum     of number
+  | EBool    of bool
+  | EIfExpr  of (ast * ast * ast)
+  | ENumExpr of (eop * ast * ast)
+  | ENumComp of (ecomp * ast * ast)
+
+(* Tokens to be created by lexing *)
 
 type token =
   | ELeftParen | ERightParen
@@ -187,14 +187,12 @@ let rec computeAST_h tokenList =
     let (t, ts) = splitList tokens in
     let (result, remaining) =
       match t with
-      | EOp a ->
-          let op = op_of_eop a in
+      | EOp op ->
           let (tree1, ts) = computeAST_h ts in
           let (tree2, ts) = computeAST_h ts in
           let result = ENumExpr (op, tree1, tree2) in
           (result, ts)
-      | EComp a ->
-          let comp = comp_of_ecomp a in
+      | EComp comp ->
           let (tree1, ts) = computeAST_h ts in
           let (tree2, ts) = computeAST_h ts in
           let result = ENumComp (comp, tree1, tree2) in
@@ -228,7 +226,8 @@ let computeAST tokenList =
 
 let rec evaluateAST tree:(ast) =
   match tree with
-  | ENumExpr (op, tree1, tree2) ->
+  | ENumExpr (eop, tree1, tree2) ->
+      let op = op_of_eop eop in
       let ev1 = evaluateAST tree1 in
       let ev2 = evaluateAST tree2 in
       (match (ev1, ev2) with
@@ -236,11 +235,12 @@ let rec evaluateAST tree:(ast) =
       | _ ->
           raise num_op_err
       )
-  | ENumComp (op, tree1, tree2) ->
+  | ENumComp (ecomp, tree1, tree2) ->
+      let comp = comp_of_ecomp ecomp in
       let ev1 = evaluateAST tree1 in
       let ev2 = evaluateAST tree2 in
       (match (ev1, ev2) with
-      | (ENum a, ENum b) -> EBool (op a b)
+      | (ENum a, ENum b) -> EBool (comp a b)
       | _ ->
           raise comp_err
       )
@@ -257,3 +257,22 @@ let rec evaluateAST tree:(ast) =
 let createAndEvaluate tokenList =
   let tree = computeAST tokenList in
   evaluateAST tree
+
+let rec str_of_AST ast =
+  match ast with
+  | ENum (ELitInt i)   -> sprintf "%d" i
+  | ENum (ELitFloat f) -> sprintf "%f" f
+  | ENum (ELitNaN)     -> "NaN"
+  | EBool b -> sprintf "%B" b
+  | EIfExpr  (cond, exp1, exp2) ->
+      sprintf "(if %s %s %s)"
+      (str_of_AST cond) (str_of_AST exp1) (str_of_AST exp2)
+  | ENumExpr (opr, exp1, exp2) ->
+      sprintf "(%s %s %s)"
+      (string_of_eop opr) (str_of_AST exp1) (str_of_AST exp2)
+  | ENumComp (comp, exp1, exp2) ->
+      sprintf "(%s %s %s)"
+      (string_of_ecomp comp) (str_of_AST exp1) (str_of_AST exp2)
+
+let rec printAST ast =
+  print_endline (str_of_AST ast)
