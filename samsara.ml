@@ -41,7 +41,7 @@ let print_tokens file =
     let tokens = Lexer.lex file in
     print_tokens_rec tokens
   with
-  | _ -> print_endline "SOMETHING"
+  | Lexer.Lexing_error str -> printf "Lexing error: %s\n" str
 
 let print_AST file =
   printf "%s:\n\t" file;

@@ -1,5 +1,18 @@
 #!/bin/bash
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CLEAR='\033[0m'
+
+function pass() {
+  echo -e "${GREEN}Passed${CLEAR}"
+}
+
+function fail() {
+  echo -e "${RED}Failed${CLEAR}"
+  FAILED=1
+}
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 SAMSARA="${DIR}/../../samsara"
@@ -19,34 +32,31 @@ FILES=$(ls)
 
 $SAMSARA -parse $FILES > "${DIR}/parse-generated.out" 2>&1
 
-echo "Evaluation tests"
+echo -n "Evaluation tests: "
 diff "${DIR}/arith-correct.out" "${DIR}/arith-generated.out"
 
 if [[ $? == 0 ]]; then
-  echo "PASSED"
+  pass
 else
-  echo "FAILED"
-  FAILED=1
+  fail
 fi
 
-echo "Lexing tests"
+echo -n "Lexing tests: "
 diff "${DIR}/lex-correct.out" "${DIR}/lex-generated.out"
 
 if [[ $? == 0 ]]; then
-  echo "PASSED"
+  pass
 else
-  echo "FAILED"
-  FAILED=1
+  fail
 fi
 
-echo "Parsing tests"
+echo -n "Parsing tests: "
 diff "${DIR}/parse-correct.out" "${DIR}/parse-generated.out"
 
 if [[ $? == 0 ]]; then
-  echo "PASSED"
+  pass
 else
-  echo "FAILED"
-  FAILED=1
+  fail
 fi
 
 if [[ -z $FAILED ]]; then
