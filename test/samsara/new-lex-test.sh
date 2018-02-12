@@ -6,7 +6,7 @@ NUMS=$(seq -s, -w 0 100)
 
 IFS=', ' read -r -a array <<< "$NUMS"
 
-NUM=$(ls -1 "$DIR/arith" | wc -l)
+NUM=$(ls -1 "$DIR/lex" | wc -l)
 
 NAME=$1
 TEXT=$2
@@ -16,6 +16,6 @@ if [[ "$NAME" != *.arith ]]; then
   NAME="$NAME.arith"
 fi
 
-echo "$TEXT" > "$DIR/arith/${array[NUM]}-${NAME}"
+echo "$TEXT" > "$DIR/lex/${array[NUM]}-${NAME}"
 
-printf '%s:\n\t%s\n' "${array[NUM]}-$NAME" "$RESULT" >> "$DIR/arith-correct.out"
+printf '%s:\n\t%s\n' "${array[NUM]}-$NAME" "$RESULT" >> "$DIR/lex-correct.out"

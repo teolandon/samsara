@@ -30,7 +30,8 @@ let evaluate file =
 let print_tokens file =
   let rec print_tokens_rec tokens =
     match tokens with
-    | []      -> printf "\n"
+    | []       -> printf "[No tokens]\n"
+    | [t]      -> printf "%s\n" (Parser.string_of_token t)
     | (t::ts) ->
         printf "%s " (Parser.string_of_token t);
         print_tokens_rec ts

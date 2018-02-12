@@ -1,0 +1,54 @@
+000-bad.arith:
+	Parser error: Invalid operation after open paren
+001-divide.arith:
+	5
+002-divide-by-zero.arith:
+	Invalid expression: Divide by 0
+003-minus.arith:
+	29
+004-no-right-paren.arith:
+	Invalid expression: Expression not valid, probably missing parens
+005-no-spaces.arith:
+	7
+006-num.arith:
+	26
+007-simple.arith:
+	24
+008-trail.arith:
+	Parser error: Program not valid: trailing characters
+009-unexpected-char.arith:
+	Lexing error: Invalid string
+010-mult.arith:
+	100
+011-comp.arith:
+	true
+012-comp2.arith:
+	true
+013-comp3.arith:
+	false
+014-boolstuff.arith:
+	7
+015-type-mismatch.arith:
+	Invalid expression: Number operation takes numbers only
+016-bool-mismatch.arith:
+	Invalid expression: "if" did not receive a boolean as condition
+017-first-float.arith:
+	5.200000
+018-second-float.arith:
+	5.200000
+019-nan-stuff.arith:
+	NaN
+020-nan-taint.arith:
+	NaN
+021-bad-float.arith:
+	Lexing error: Bad floating point number
+022-bad-float.arith:
+	5.600000
+023-comp-float.arith:
+	3.100000
+024-comp-float.arith:
+	2.100000
+025-nan-taint-again.arith:
+	NaN
+026-nan-taint-again.arith:
+	false
