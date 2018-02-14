@@ -31,8 +31,8 @@ let multiplication num1 num2 =
 
 let division num1 num2 =
   match (num1, num2) with
-  | (num1, num2) when is_zero num1  -> raise LOL
   | (num1, num2) when (is_zero num1 && is_zero num2) -> ENaN
+  | (num1, num2) when is_zero num2  -> raise LOL
   | _ -> opr_helper num1 num2 ( / ) ( /. )
 
 let modulo num1 num2 =

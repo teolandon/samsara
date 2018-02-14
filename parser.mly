@@ -38,14 +38,14 @@ number:
   | i = INT   { EInt i }
   | f = FLOAT { EFloat f }
   | o = opr   { o }
-  | NAN   { ENaN }
+  | NAN       { Expr.ENaN }
 
 boolean:
   | b = BOOL { EBool b }
   | c = comp { c }
 
 opr:
-  | LEFT_PAREN; operation = operand; a = number; b = number; RIGHT_PAREN
+  | LEFT_PAREN; operation = operand; a = expr; b = expr; RIGHT_PAREN
     { operation a b }
   ;
 

@@ -1,13 +1,13 @@
 000-simple.arith:
 	20
 001-more-stuff.arith:
-	001-more-stuff.arith:1:24: syntax error
+	Some expression error
 002-errors.arith:
-	002-errors.arith:1:11: syntax error
+	Some expression error
 003-errors2.arith:
 	20
 -103
 004-errors3.arith:
 	223
 005-packed.arith:
-	005-packed.arith:1:8: syntax error
+	10
