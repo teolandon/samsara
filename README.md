@@ -19,7 +19,7 @@ The syntax is described by the following context free grammar:
 
     e    ::= num | bool | (if bool e e )
     num  ::= n | f | NaN | (+ num num) | (- num num)
-           | (* num num) | (/ num num) | (mod num num)
+           | (* num num) | (/ num num) | (% num num)
     bool ::= true | false | (< num num) | (<= num num) | (> num num)
            | (>= num num)
 
