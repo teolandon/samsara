@@ -1,3 +1,7 @@
+%{
+  exception Not_bool
+%}
+
 %token <int> INT
 %token <float> FLOAT
 %token <bool> BOOL
@@ -13,6 +17,7 @@
 %token GREATER
 %token LESS_EQ
 %token GREATER_EQ
+%token NAN
 %token EOF
 
 %start <Expr.value option> prog
@@ -24,18 +29,20 @@ prog:
   ;
 
 expr:
-  | c = comp   { Expr.val_of_bool c }
-  | n = number  { Expr.val_of_num n }
+  | c = cond    { c }
+  | n = number  { n }
   | b = boolean { b }
   ;
 
 number:
-  | i = INT   { `Int i }
-  | f = FLOAT { `Float f }
+  | i = INT   { EInt i }
+  | f = FLOAT { EFloat f }
   | o = opr   { o }
+  | NAN   { ENaN }
 
 boolean:
-  | b = BOOL { `Bool b }
+  | b = BOOL { EBool b }
+  | c = comp { c }
 
 opr:
   | LEFT_PAREN; operation = operand; a = number; b = number; RIGHT_PAREN
@@ -47,15 +54,23 @@ comp:
     { comp a b }
   ;
 
+cond:
+  | LEFT_PAREN; IF; c = boolean; e1 = expr; e2 = expr; RIGHT_PAREN
+    {
+      match c with
+      | EBool b -> if b then e1 else e2
+      | _       -> raise Not_bool
+    }
+
 operand:
-  | PLUS  { ( Expr.addition ) }
-  | MINUS { ( Expr.subtraction ) }
-  | MULT  { ( Expr.multiplication ) }
-  | DIV   { ( Expr.division ) }
-  | MOD   { ( Expr.modulo ) }
+  | PLUS  { Expr.addition }
+  | MINUS { Expr.subtraction }
+  | MULT  { Expr.multiplication }
+  | DIV   { Expr.division }
+  | MOD   { Expr.modulo }
 
 comparison:
-  | LESS       { ( Expr.less ) }
-  | GREATER    { ( Expr.greater ) }
-  | LESS_EQ    { ( Expr.less_eq ) }
-  | GREATER_EQ { ( Expr.greater_eq ) }
+  | LESS       { Expr.less }
+  | GREATER    { Expr.greater }
+  | LESS_EQ    { Expr.less_eq }
+  | GREATER_EQ { Expr.greater_eq }

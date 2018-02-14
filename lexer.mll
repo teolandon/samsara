@@ -28,8 +28,6 @@ let newline = '\r' | '\n' | "\r\n"
 
 let comp = ['<' '>'] ['=']?
 
-let str = ['a'-'z' 'A'-'Z' '_' '-'] ['a'-'z' 'A'-'Z' '0'-'9' '_' '-']*
-
 rule read =
   parse
   | white    { read lexbuf }
@@ -39,6 +37,8 @@ rule read =
   | comp     { comp_of_str (Lexing.lexeme lexbuf) }
   | "true"   { BOOL true }
   | "false"  { BOOL false }
+  | "NaN"    { NAN }
+  | "if"     { IF }
   | '('      { LEFT_PAREN }
   | ')'      { RIGHT_PAREN }
   | '+'      { PLUS }

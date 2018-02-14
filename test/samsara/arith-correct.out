@@ -33,9 +33,9 @@
 016-bool-mismatch.arith:
 	Invalid expression: "if" did not receive a boolean as condition
 017-first-float.arith:
-	5.200000
+	5.2
 018-second-float.arith:
-	5.200000
+	5.2
 019-nan-stuff.arith:
 	NaN
 020-nan-taint.arith:
@@ -43,11 +43,11 @@
 021-bad-float.arith:
 	Lexing error: Bad floating point number
 022-bad-float.arith:
-	5.600000
+	5.6
 023-comp-float.arith:
-	3.100000
+	3.1
 024-comp-float.arith:
-	2.100000
+	2.1
 025-nan-taint-again.arith:
 	NaN
 026-nan-taint-again.arith:

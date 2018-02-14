@@ -1,1 +1,6 @@
-000-bad.arith:1:3: syntax error
+000-bad.arith:
+	000-bad.arith:1:3: syntax error
+001-divide.arith:
+	5
+002-divide-by-zero.arith:
+	Fatal error: exception Division_by_zero
