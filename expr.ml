@@ -1,4 +1,16 @@
-exception LOL
+exception Expr_error of string
+
+let invalid_opr =
+  Expr_error "Invalid operation, only accepts numbers"
+
+let invalid_comp =
+  Expr_error "Invalid comparison, only accepts numbers"
+
+let div_by_zero =
+  Expr_error "Divide by zero"
+
+let modulo_error =
+  Expr_error "Modulo operation only accepts integers"
 
 type value =
   | EBool of bool
@@ -13,7 +25,7 @@ let opr_helper num1 num2 (int_opr:int->int->int) (float_opr:float->float->float)
   | (EInt a, EFloat b)   -> EFloat (float_opr (float_of_int a) b)
   | (EFloat a, EFloat b) -> EFloat (float_opr a b)
   | (ENaN, _) | (_, ENaN) -> ENaN
-  | _                     -> raise LOL
+  | _                     -> raise invalid_opr
 
 let is_zero n =
   match n with
@@ -32,13 +44,13 @@ let multiplication num1 num2 =
 let division num1 num2 =
   match (num1, num2) with
   | (num1, num2) when (is_zero num1 && is_zero num2) -> ENaN
-  | (num1, num2) when is_zero num2  -> raise LOL
+  | (num1, num2) when is_zero num2  -> raise div_by_zero
   | _ -> opr_helper num1 num2 ( / ) ( /. )
 
 let modulo num1 num2 =
   match (num1, num2) with
   | (EInt a, EInt b) -> EInt (a mod b)
-  | _                -> raise LOL
+  | _                -> raise modulo_error
 
 let comp_helper num1 num2 comp =
   let result =
@@ -48,7 +60,7 @@ let comp_helper num1 num2 comp =
     | (EInt a, EFloat b)    -> comp (float_of_int a) b
     | (EFloat a, EFloat b)  -> comp a b
     | (ENaN, _) | (_, ENaN) -> false
-    | _                     -> raise LOL
+    | _                     -> raise invalid_comp
   in EBool result
 
 let less num1 num2 =

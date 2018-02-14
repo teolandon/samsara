@@ -17,7 +17,7 @@ let comp_of_str str =
   | ">" -> GREATER
   | "<=" -> LESS_EQ
   | ">=" -> GREATER_EQ
-  | _    -> raise (SyntaxError "WHATTT")
+  | _    -> raise (SyntaxError "Unexpected comparison operator")
 }
 
 let int = ['0'-'9']+
@@ -46,5 +46,5 @@ rule read =
   | '*'      { MULT }
   | '/'      { DIV }
   | '%'      { MOD }
-  | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
+  | _        { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
   | eof      { EOF }

@@ -23,10 +23,10 @@ let parse_with_error lexbuf =
         printf "%a: %s\n" print_position lexbuf msg;
         None
     | Parser.Error ->
-        printf "%a: syntax error\n" print_position lexbuf;
+        printf "%a: parser error\n" print_position lexbuf;
         None
-    | Expr.LOL ->
-        print_endline "Some expression error";
+    | Expr.Expr_error str ->
+        printf "Invalid expression: %s\n" str;
         None
 
 let rec parse_and_print lexbuf =

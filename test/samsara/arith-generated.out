@@ -3,7 +3,7 @@
 001-divide.arith:
 	5
 002-divide-by-zero.arith:
-	Some expression error
+	Invalid expression: Divide by zero
 003-minus.arith:
 	29
 004-no-right-paren.arith:
@@ -30,7 +30,7 @@
 014-boolstuff.arith:
 	7
 015-type-mismatch.arith:
-	Some expression error
+	Invalid expression: Invalid operation, only accepts numbers
 016-bool-mismatch.arith:
 	016-bool-mismatch.arith:1:7: syntax error
 017-first-float.arith:

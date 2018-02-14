@@ -1,9 +1,9 @@
 000-simple.arith:
 	20
 001-more-stuff.arith:
-	Some expression error
+	Invalid expression: Invalid operation, only accepts numbers
 002-errors.arith:
-	Some expression error
+	Invalid expression: Invalid operation, only accepts numbers
 003-errors2.arith:
 	20
 -103
