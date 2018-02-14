@@ -50,7 +50,8 @@ let print_AST file =
     let ast = Parser.computeAST tokens in
     Parser.printAST ast
   with
-  | _ -> print_endline "SOMETHING_ELSE"
+  | Parser.Invalid_token str -> printf "Parser error: %s\n" str
+  | Parser.Invalid_expr  str -> printf "Invalid expression: %s\n" str
 
 
 let rec file_loop files func =

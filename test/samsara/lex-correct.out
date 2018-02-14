@@ -12,3 +12,5 @@
 	<= <= <= < < < >
 006-all.arith:
 	/ * if if if ( + 123 0 NaN )
+007-empty.arith:
+	[No tokens]
