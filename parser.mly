@@ -20,15 +20,24 @@
 %token NAN
 %token EOF
 
+%nonassoc LESS GREATER LESS_EQ GREATER_EQ
+%left MOD
+%left MINUS PLUS
+%left MULT DIV
+
 %start <Expr.value option> prog
 %%
 
 prog:
   | EOF { None }
-  | e = expr { Some e }
+  | e = expr EOF { Some e }
   ;
 
 expr:
+  | e = exp  { e }
+  | LEFT_PAREN; e = exp; RIGHT_PAREN  { e }
+
+exp:
   | c = cond    { c }
   | n = number  { n }
   | b = boolean { b }
@@ -45,14 +54,25 @@ boolean:
   | c = comp { c }
 
 opr:
-  | LEFT_PAREN; operation = operand; a = expr; b = expr; RIGHT_PAREN
+  | a = expr; operation = operator; b = expr;
     { operation a b }
   ;
+%inline operator:
+  | PLUS  { Expr.addition }
+  | MINUS { Expr.subtraction }
+  | MULT  { Expr.multiplication }
+  | DIV   { Expr.division }
+  | MOD   { Expr.modulo }
 
 comp:
-  | LEFT_PAREN; comp = comparison; a = number; b = number; RIGHT_PAREN
+  | a = expr; comp = comparison; b = expr
     { comp a b }
   ;
+%inline comparison:
+  | LESS       { Expr.less }
+  | GREATER    { Expr.greater }
+  | LESS_EQ    { Expr.less_eq }
+  | GREATER_EQ { Expr.greater_eq }
 
 cond:
   | LEFT_PAREN; IF; c = boolean; e1 = expr; e2 = expr; RIGHT_PAREN
@@ -61,16 +81,3 @@ cond:
       | EBool b -> if b then e1 else e2
       | _       -> raise Not_bool
     }
-
-operand:
-  | PLUS  { Expr.addition }
-  | MINUS { Expr.subtraction }
-  | MULT  { Expr.multiplication }
-  | DIV   { Expr.division }
-  | MOD   { Expr.modulo }
-
-comparison:
-  | LESS       { Expr.less }
-  | GREATER    { Expr.greater }
-  | LESS_EQ    { Expr.less_eq }
-  | GREATER_EQ { Expr.greater_eq }

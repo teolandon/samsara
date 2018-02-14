@@ -36,6 +36,44 @@ let rec parse_and_print lexbuf =
         parse_and_print lexbuf
     | None -> ()
 
+let string_of_token token =
+  match token with
+  | Parser.EOF -> ""
+  | Parser.PLUS -> "+"
+  | Parser.MINUS -> "-"
+  | Parser.MULT -> "*"
+  | Parser.DIV -> "/"
+  | Parser.MOD -> "%"
+  | Parser.LEFT_PAREN -> "("
+  | Parser.RIGHT_PAREN -> ")"
+  | Parser.INT i -> string_of_int i
+  | Parser.FLOAT f -> string_of_float f
+  | Parser.BOOL b  -> string_of_bool b
+  | Parser.IF      -> "if"
+  | Parser.LESS -> "<"
+  | Parser.LESS_EQ -> "<="
+  | Parser.GREATER -> ">"
+  | Parser.GREATER_EQ -> ">="
+  | Parser.NAN -> "NaN"
+
+let print_lex_stream filename =
+  let rec run lexbuf =
+    try
+      let tok = Lexer.read lexbuf in
+      match tok with
+      | Parser.EOF -> printf "\n"
+      | _          -> printf "%s " (string_of_token tok); run lexbuf
+    with
+    | SyntaxError msg ->
+        printf "%a: %s\n" print_position lexbuf msg
+  in
+  let in_f = open_in filename in
+  let lexbuf = Lexing.from_channel in_f in
+  printf "%s:\n\t" filename;
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
+  run lexbuf;
+  close_in in_f;;
+
 let loop filename =
   let in_f = open_in filename in
   let lexbuf = Lexing.from_channel in_f in
@@ -44,10 +82,10 @@ let loop filename =
   parse_and_print lexbuf;
   close_in in_f;;
 
-let rec loop_files files =
+let rec loop_files files func =
   match files with
   | [] -> ()
-  | (f::fs) -> loop f; loop_files fs
+  | (f::fs) -> func f; loop_files fs func
 
 let usageMsg = "Usage: samsara [-lex] [-parse] FILE..."
 
@@ -60,10 +98,9 @@ let speclist = [
 let main () =
   Arg.parse speclist addFile usageMsg;
   let files = (List.rev !files) in
-  loop_files files
-  (* match (!lex_flag, !parse_flag) with *)
-  (* | (false, false) -> evaluate_files     files *)
-  (* | (true , false) -> print_tokens_files files *)
-  (* | (_, true)      -> print_AST_files    files *)
+  match (!lex_flag, !parse_flag) with
+  | (false, false) -> loop_files     files loop
+  | (true , false) -> loop_files     files print_lex_stream
+  | (_, true)      -> ()
 
 let () = main ()
