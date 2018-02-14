@@ -1,16 +1,4 @@
-000-simple.arith:
-	( + 10 10 )
-001-nosense.arith:
-	+ ( 123 true if ) (
-002-wrong-string.arith:
-	Lexing error: Invalid string
-003-a-lot-of-parens.arith:
-	( ) ( ) ( ) ( ) ( ) ) ) ) )
-004-floating.arith:
-	( / 123.123
-005-comps.arith:
-	<= <= <= < < < >
-006-all.arith:
-	/ * if if if ( + 123 0 NaN )
-007-empty.arith:
-	[No tokens]
+/home/teolandon/samsara/test/samsara/../../samsara.native: unknown option '-lex'.
+this
+  -help  Display this list of options
+  --help  Display this list of options

@@ -7,36 +7,27 @@
 .PHONY: test
 
 # Compiler:
-CC = ocamlopt
+CC = ocamlbuild
 
 # Test script
 CLI_TEST = test/simplecli/compare-results.sh
 SAMSARA_TEST = test/samsara/test.sh
 
 # Compilation Flags:
-FLAGS =
+FLAGS = -use-menhir -use-ocamlfind
 
 all: samsara
 
-samsara: parser.cmx lexer.cmx samsara.cmx
-	$(CC) -o samsara parser.cmx lexer.cmx samsara.cmx
-
-parser.cmx: parser.ml parser.mli
-	$(CC)    parser.mli
-	$(CC) -c parser.ml
-
-lexer.cmx: lexer.ml lexer.mli
-	$(CC)    lexer.mli
-	$(CC) -c lexer.ml
-
-samsara.cmx: samsara.ml
-	$(CC) -c samsara.ml
+samsara: parser.mly lexer.mll samsara.ml
+	$(CC) $(FLAGS) samsara.native
 
 simplecli: simplecli.ml
-	$(CC) -o simplecli simplecli.ml
+	ocamlopt -o simplecli simplecli.ml
+	rm -f simplecli.o simplecli.cmx simplecli.cmi
 
 clean:
 	rm -f simplecli samsara *.cmo *.cmi *.cmx *.o test/samsara/generated.out test/simplecli/generated.out
+	rm -r _build
 
 test: simplecli samsara
 	$(CLI_TEST)

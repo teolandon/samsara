@@ -1,89 +1,38 @@
 (* Main file *)
+
 open Printf
+open Lexer
+open Lexing
 
-(* Mode flags *)
+let print_position outx lexbuf =
+  let pos = lexbuf.lex_curr_p in
+  printf "%s:%d:%d"
+    pos.pos_fname
+    pos.pos_lnum
+    (pos.pos_cnum - pos.pos_bol + 1)
 
-let lex_flag   = ref false
-let parse_flag = ref false
+let parse_with_error lexbuf =
+  try Parser.prog Lexer.read lexbuf with
+    | SyntaxError msg ->
+        fprintf stderr "%a: %s\n" print_position lexbuf msg;
+        None
+    | Parser.Error ->
+        fprintf stderr "%a: syntax error\n" print_position lexbuf;
+        exit (-1)
 
-let files = ref []
+let rec parse_and_print lexbuf =
+  match parse_with_error lexbuf with
+    | Some expr ->
+        print_endline (Expr.string_of_value expr);
+        parse_and_print lexbuf
+    | None ->
+        printf "EOF reached\n"
 
-let addFile filename =
-  files := filename :: !files
+let loop filename =
+  let in_f = open_in filename in
+  let lexbuf = Lexing.from_channel in_f in
+    lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
+    parse_and_print lexbuf;
+    close_in in_f;;
 
-let evaluate file =
-  printf "%s:\n\t" file;
-  try
-    let tokens = Lexer.lex file in
-    let result = Parser.createAndEvaluate tokens in
-    match result with
-    | Parser.ENum (Parser.ELitInt   a) -> printf "%d\n" a
-    | Parser.ENum (Parser.ELitFloat f) -> printf "%f\n" f
-    | Parser.ENum Parser.ELitNaN       -> printf "NaN\n"
-    | Parser.EBool b    -> printf "%b\n" b
-    | _ -> printf "Tree not completely evaluated"
-  with
-  | Parser.Invalid_token str -> printf "Parser error: %s\n" str
-  | Parser.Invalid_expr  str -> printf "Invalid expression: %s\n" str
-  | Lexer.Lexing_error   str -> printf "Lexing error: %s\n" str
-
-let print_tokens file =
-  let rec print_tokens_rec tokens =
-    match tokens with
-    | []       -> printf "[No tokens]\n"
-    | [t]      -> printf "%s\n" (Parser.string_of_token t)
-    | (t::ts) ->
-        printf "%s " (Parser.string_of_token t);
-        print_tokens_rec ts
-  in
-  printf "%s:\n\t" file;
-  try
-    let tokens = Lexer.lex file in
-    print_tokens_rec tokens
-  with
-  | Lexer.Lexing_error str -> printf "Lexing error: %s\n" str
-
-let print_AST file =
-  printf "%s:\n\t" file;
-  try
-    let tokens = Lexer.lex file in
-    let ast = Parser.computeAST tokens in
-    Parser.printAST ast
-  with
-  | Parser.Invalid_token str -> printf "Parser error: %s\n" str
-  | Parser.Invalid_expr  str -> printf "Invalid expression: %s\n" str
-
-
-let rec file_loop files func =
-  match files with
-  | []       -> ()
-  | (f::fs) ->
-      func f;
-      file_loop fs func
-
-let evaluate_files files =
-  file_loop files evaluate
-
-let print_tokens_files files =
-  file_loop files print_tokens
-
-let print_AST_files files =
-  file_loop files print_AST
-
-let usageMsg = "Usage: samsara [-lex] [-parse] FILE..."
-
-let speclist = [
-  ("-lex", Arg.Set lex_flag, "prints the lexx'd list of tokens");
-  ("-parse", Arg.Set parse_flag, "prints the parsed AST");
-  ("--help", Arg.Unit (fun () -> ()), ""); (* Supresses flag *)
-]
-
-let main () =
-  Arg.parse speclist addFile usageMsg;
-  let files = (List.rev !files) in
-  match (!lex_flag, !parse_flag) with
-  | (false, false) -> evaluate_files     files
-  | (true , false) -> print_tokens_files files
-  | (_, true)      -> print_AST_files    files
-
-let () = main ()
+Arg.parse [] loop "this"

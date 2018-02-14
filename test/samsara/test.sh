@@ -15,7 +15,7 @@ function fail() {
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-SAMSARA="${DIR}/../../samsara"
+SAMSARA="${DIR}/../../samsara.native"
 
 cd "${DIR}/arith"
 FILES=$(ls)
