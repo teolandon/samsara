@@ -50,6 +50,8 @@ let string_of_token token =
   | Parser.FLOAT f -> string_of_float f
   | Parser.BOOL b  -> string_of_bool b
   | Parser.IF      -> "if"
+  | Parser.THEN    -> "then"
+  | Parser.ELSE    -> "else"
   | Parser.LESS -> "<"
   | Parser.LESS_EQ -> "<="
   | Parser.GREATER -> ">"

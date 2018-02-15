@@ -13,6 +13,8 @@
 %token DIV
 %token MOD
 %token IF
+%token THEN
+%token ELSE
 %token LESS
 %token GREATER
 %token LESS_EQ
@@ -21,6 +23,7 @@
 %token EOF
 
 %nonassoc LESS GREATER LESS_EQ GREATER_EQ
+%nonassoc ELSE
 %left MOD
 %left MINUS PLUS
 %left MULT DIV
@@ -75,7 +78,7 @@ comp:
   | GREATER_EQ { Expr.greater_eq }
 
 cond:
-  | LEFT_PAREN; IF; c = boolean; e1 = expr; e2 = expr; RIGHT_PAREN
+  | IF; c = expr; THEN; e1 = expr; ELSE; e2 = expr
     {
       match c with
       | EBool b -> if b then e1 else e2

@@ -39,6 +39,8 @@ rule read =
   | "false"  { BOOL false }
   | "NaN"    { NAN }
   | "if"     { IF }
+  | "then"   { THEN }
+  | "else"   { ELSE }
   | '('      { LEFT_PAREN }
   | ')'      { RIGHT_PAREN }
   | '+'      { PLUS }
