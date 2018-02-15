@@ -1,16 +1,16 @@
 000-simple.arith:
-	20
+	( + 10 10 ) 
 001-nosense.arith:
-	001-nosense.arith:1:2: syntax error
+	+ ( 123 true if ) ( 
 002-wrong-string.arith:
-	002-wrong-string.arith:1:2: syntax error
+	Lexing error (1:4): Unexpected char: s
 003-a-lot-of-parens.arith:
-	003-a-lot-of-parens.arith:1:3: syntax error
+	( ) ( ) ( ) ( ) ( ) ) ) ) ) 
 004-floating.arith:
-	004-floating.arith:2:1: syntax error
+	( / 123.123 
 005-comps.arith:
-	005-comps.arith:1:3: syntax error
+	<= <= <= < < < > 
 006-all.arith:
-	006-all.arith:1:2: syntax error
+	/ * if if if ( + 123 0 NaN ) 
 007-empty.arith:
-	
+	[No tokens]

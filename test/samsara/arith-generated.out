@@ -1,55 +1,16 @@
-000-bad.arith:
-	000-bad.arith:1:3: syntax error
-001-divide.arith:
-	5
-002-divide-by-zero.arith:
-	Invalid expression: Divide by zero
-003-minus.arith:
-	29
-004-no-right-paren.arith:
-	004-no-right-paren.arith:2:1: syntax error
-005-no-spaces.arith:
-	7
-006-num.arith:
-	26
-007-simple.arith:
-	24
-008-trail.arith:
-	2
-4
-009-unexpected-char.arith:
-	009-unexpected-char.arith:1:5: Unexpected char: a
-010-mult.arith:
+000-simple.arith:
+	20
+001-plus-minus.arith:
+	30
+002-minus-plus.arith:
+	20
+003-minus-minus.arith:
+	10
+004-division-simple.arith:
 	100
-011-comp.arith:
-	true
-012-comp2.arith:
-	true
-013-comp3.arith:
-	false
-014-boolstuff.arith:
-	7
-015-type-mismatch.arith:
-	Invalid expression: Invalid operation, only accepts numbers
-016-bool-mismatch.arith:
-	016-bool-mismatch.arith:1:7: syntax error
-017-first-float.arith:
-	5.2
-018-second-float.arith:
-	5.2
-019-nan-stuff.arith:
-	NaN
-020-nan-taint.arith:
-	NaN
-021-bad-float.arith:
-	021-bad-float.arith:1:13: Unexpected char: .
-022-bad-float.arith:
-	5.6
-023-comp-float.arith:
-	3.1
-024-comp-float.arith:
-	2.1
-025-nan-taint-again.arith:
-	NaN
-026-nan-taint-again.arith:
-	false
+005-division-assoc.arith:
+	10
+006-mult.arith:
+	64
+007-priority.arith:
+	46
