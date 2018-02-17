@@ -1,7 +1,3 @@
-%{
-  exception Not_bool
-%}
-
 %token <int> INT
 %token <float> FLOAT
 %token <bool> BOOL
