@@ -1,3 +1,6 @@
+%{
+  open Expr
+%}
 %token <int> INT
 %token <float> FLOAT
 %token <bool> BOOL
@@ -46,7 +49,7 @@ number:
   | i = INT   { EInt i }
   | f = FLOAT { EFloat f }
   | o = opr   { o }
-  | NAN       { Expr.ENaN }
+  | NAN       { ENaN }
 
 boolean:
   | b = BOOL { EBool b }
@@ -54,25 +57,25 @@ boolean:
 
 opr:
   | a = expr; operation = operator; b = expr;
-    { Expr.EOpr (operation, a, b) }
+    { EOpr (operation, a, b) }
   ;
 %inline operator:
-  | PLUS  { Expr.EPlus }
-  | MINUS { Expr.EMinus }
-  | MULT  { Expr.EMult }
-  | DIV   { Expr.EDiv }
-  | MOD   { Expr.EMod }
+  | PLUS  { EPlus }
+  | MINUS { EMinus }
+  | MULT  { EMult }
+  | DIV   { EDiv }
+  | MOD   { EMod }
 
 comp:
   | a = expr; comp = comparison; b = expr
-    { Expr.EComp (comp, a, b) }
+    { EComp (comp, a, b) }
   ;
 %inline comparison:
-  | LESS       { Expr.ELess }
-  | GREATER    { Expr.EGreater }
-  | LESS_EQ    { Expr.ELessEq }
-  | GREATER_EQ { Expr.EGreaterEq }
+  | LESS       { ELess }
+  | GREATER    { EGreater }
+  | LESS_EQ    { ELessEq }
+  | GREATER_EQ { EGreaterEq }
 
 cond:
   | IF; c = expr; THEN; e1 = expr; ELSE; e2 = expr
-    { Expr.EIf (c, e1, e2) }
+    { EIf (c, e1, e2) }
