@@ -11,39 +11,52 @@ of the syntax, refer to the __Syntax__ section below.
 ## Execution
 Run samsara in the terminal, using `./samsara file1 file2 ...`, where the file
 arguments are paths to files that contain a samsara expression. samsara will
-then print out the evaluation of each of these expressions. No compilation flags
-are yet implemented.
+then print out the evaluation of each of these expressions.
+
+samsara supports two compilation flags:
+
+* _-lex_ prints out the lexed tokens.
+* _-parse_ prints out the parsed AST in S-Expression format.
 
 ## Syntax
 The syntax is described by the following context free grammar:
 
-    e    ::= num | bool | (if bool e e )
-    num  ::= n | f | NaN | (+ num num) | (- num num)
-           | (* num num) | (/ num num) | (% num num)
-    bool ::= true | false | (< num num) | (<= num num) | (> num num)
-           | (>= num num)
+    e    ::= (e) | num | bool | if e then e else e
+    num  ::= (num) | n | f | NaN | num + num | num - num
+           | num * num | num / num | num % num
+    bool ::= (bool) | true | false | num < num | num <= num | num > num
+           | num >= num
 
 Where:
 
+* Parentheses are optional.
 * `n` is a positive integer literal, such as `1` or `912`
 * `f` is a positive floating point literal, such as `1.1234` or `0.12312`
 * `NaN` is the respective representation of the IEEE 754 NaN.
 * `+`, `-`, and the rest of the `num` expressions are their respective
     operations on numbers. An operation on two integers evaluates to an integer,
-    while an operation that contains at least one float returns a float.
+    while an operation that contains at least one float returns a float. All of
+    these are left associative.
+    * `%` has the least priority, while `+` and `-` have medium priority, with
+        `*` and `/` having the greatest priority.
 * `NaN` is taintful in operations, meaning that any operation that contains
     `NaN` returns `NaN`.
 * `<` `>`, and the rest of the `bool` expressions are their respective
     comparisons on numbers. An operation returns a boolean.
 * `true` and `false` represent their respective boolean values.
 * The `if` expression evaluates the boolean argument and if it evaluates to
-    `true`, then the `if` expression evaluates to the first `e` expression that
+    `true`, then the `if` expression evaluates to the second `e` expression that
     is given to it, and if the boolean evaluates to `false`, then the `if`
-    expression evaluates to the second `e` expression that is given to it.
+    expression evaluates to the third `e` expression that is given to it.
+    * The third `e` expression only captures the minimal expression to the right
+        of the `else` keyword. This is due to the left associativity of the
+        operations. Use parentheses if you want to catch a bigger expression.
+    * The first `e` expression must evaluate to a boolean.
 
 Some operations have margin for errors and type mismatches. These are usually
 raised with an error message describing the error, but not its location, because
-that would be a lot of work.
+ocamllex is being a bit hard on me, and I don't have enough time to do it right
+now.
 
 Some more notes:
 
@@ -55,7 +68,12 @@ samsara is written in OCaml, and uses the core library exclusively. Follow
 the official instructions from the [OCaml website](https://ocaml.org/docs/install.html)
 to install the latest OCaml tools.
 
-The `ocamlopt` compiler is used to build the project.
+The `ocamlbuild` compiler is used to build the project. The Menhir library as
+well as `ocamllex` are used for parsing and lexing. Use `opam` to download
+Menhir with
+
+    opam install menhir
+
 A number of common GNU tools are also required for tests and simple builds.
 These tools are as follows:
 
@@ -117,6 +135,19 @@ testing and keep commits clean and correct. Refer to the HOOKS.md file in the
 **hooks/** directory.
 
 # Changelog
+
+## Assignment 03 - 2018-02-16
+
+### Added
+* Menhir and ocamllex parser generation.
+* Compilation flags for lexing and parsing.
+* Tests for lexing and parsing, and scripts to add them nicely.
+
+### Changed
+* samsara grammar now uses infix operators with optional parentheses.
+
+### Known bugs
+* Insufficient and inaccurate error reporting.
 
 ## Assignment 02 - 2018-02-08
 
