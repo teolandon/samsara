@@ -74,6 +74,11 @@ Menhir with
 
     opam install menhir
 
+This should also install `ocamlbuild`, since it's a dependency, but in the rare
+case that it doesn't `ocamlbuil` can be installed using
+
+    opam install ocamlbuild
+
 A number of common GNU tools are also required for tests and simple builds.
 These tools are as follows:
 
