@@ -26,7 +26,7 @@ simplecli: simplecli.ml
 	rm -f simplecli.o simplecli.cmx simplecli.cmi
 
 clean:
-	rm -f simplecli samsara *.cmo *.cmi *.cmx *.o test/samsara/generated.out test/simplecli/generated.out
+	rm -f simplecli samsara.native *.cmo *.cmi *.cmx *.o test/samsara/generated.out test/simplecli/generated.out
 	rm -r _build
 
 test: simplecli samsara

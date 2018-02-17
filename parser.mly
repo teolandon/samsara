@@ -58,29 +58,25 @@ boolean:
 
 opr:
   | a = expr; operation = operator; b = expr;
-    { operation a b }
+    { Expr.EOpr (operation, a, b) }
   ;
 %inline operator:
-  | PLUS  { Expr.addition }
-  | MINUS { Expr.subtraction }
-  | MULT  { Expr.multiplication }
-  | DIV   { Expr.division }
-  | MOD   { Expr.modulo }
+  | PLUS  { Expr.EPlus }
+  | MINUS { Expr.EMinus }
+  | MULT  { Expr.EMult }
+  | DIV   { Expr.EDiv }
+  | MOD   { Expr.EMod }
 
 comp:
   | a = expr; comp = comparison; b = expr
-    { comp a b }
+    { Expr.EComp (comp, a, b) }
   ;
 %inline comparison:
-  | LESS       { Expr.less }
-  | GREATER    { Expr.greater }
-  | LESS_EQ    { Expr.less_eq }
-  | GREATER_EQ { Expr.greater_eq }
+  | LESS       { Expr.ELess }
+  | GREATER    { Expr.EGreater }
+  | LESS_EQ    { Expr.ELessEq }
+  | GREATER_EQ { Expr.EGreaterEq }
 
 cond:
   | IF; c = expr; THEN; e1 = expr; ELSE; e2 = expr
-    {
-      match c with
-      | EBool b -> if b then e1 else e2
-      | _       -> raise Not_bool
-    }
+    { Expr.EIf (c, e1, e2) }

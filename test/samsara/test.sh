@@ -50,14 +50,14 @@ else
   fail
 fi
 
-# echo -n "Parsing tests: "
-# diff "${DIR}/parse-correct.out" "${DIR}/parse-generated.out"
+echo -n "Parsing tests: "
+diff "${DIR}/parse-correct.out" "${DIR}/parse-generated.out"
 
-# if [[ $? == 0 ]]; then
-#   pass
-# else
-#   fail
-# fi
+if [[ $? == 0 ]]; then
+  pass
+else
+  fail
+fi
 
 if [[ -z $FAILED ]]; then
   exit 0;
