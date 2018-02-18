@@ -4,25 +4,36 @@
 %token <int> INT
 %token <float> FLOAT
 %token <bool> BOOL
+%token NAN
+
 %token LEFT_PAREN
 %token RIGHT_PAREN
+
 %token PLUS
 %token MINUS
 %token MULT
 %token DIV
 %token MOD
+
 %token IF
 %token THEN
 %token ELSE
+
 %token LESS
 %token GREATER
 %token LESS_EQ
 %token GREATER_EQ
-%token NAN
+
+%token <string> ID
+%token ASSIGN
+%token LET
+%token IN
+%token ARROW
+
 %token EOF
 
+%nonassoc ELSE IN
 %nonassoc LESS GREATER LESS_EQ GREATER_EQ
-%nonassoc ELSE
 %left MOD
 %left MINUS PLUS
 %left MULT DIV
@@ -43,6 +54,7 @@ exp:
   | c = cond    { c }
   | n = number  { n }
   | b = boolean { b }
+  | l = letbind { l }
   ;
 
 number:
@@ -79,3 +91,7 @@ comp:
 cond:
   | IF; c = expr; THEN; e1 = expr; ELSE; e2 = expr
     { EIf (c, e1, e2) }
+
+letbind:
+  | LET; id = ID; ASSIGN; e1 = expr; IN; e2 = expr
+    { ELet (id, e1, e2) }

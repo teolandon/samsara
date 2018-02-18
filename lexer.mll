@@ -28,6 +28,8 @@ let newline = '\r' | '\n' | "\r\n"
 
 let comp = ['<' '>'] ['=']?
 
+let id = ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
+
 rule read =
   parse
   | white    { read lexbuf }
@@ -41,6 +43,10 @@ rule read =
   | "if"     { IF }
   | "then"   { THEN }
   | "else"   { ELSE }
+  | "let"    { LET }
+  | "="      { ASSIGN }
+  | "in"     { IN }
+  | id       { ID (Lexing.lexeme lexbuf) }
   | '('      { LEFT_PAREN }
   | ')'      { RIGHT_PAREN }
   | '+'      { PLUS }

@@ -30,7 +30,12 @@ let string_of_token token =
   | Parser.LESS_EQ -> "<="
   | Parser.GREATER -> ">"
   | Parser.GREATER_EQ -> ">="
-  | Parser.NAN -> "NaN"
+  | Parser.LET    -> "let"
+  | Parser.IN     -> "in"
+  | Parser.ASSIGN -> "="
+  | Parser.ID str -> "id:" ^ str
+  | Parser.ARROW  -> "->"
+  | Parser.NAN    -> "NaN"
 
 let position_str lexbuf =
   let pos = lexbuf.lex_curr_p in

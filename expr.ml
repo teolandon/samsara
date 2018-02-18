@@ -27,6 +27,8 @@ and value =
   | EOpr  of (opr * value * value)
   | EComp of (comp * value * value)
   | EIf   of (value * value * value)
+  | ELet  of (string * value * value)
+  | EId   of string
 
 let opr_helper (int_opr:int->int->int) (float_opr:float->float->float) num1 num2 =
   match (num1, num2) with
@@ -112,6 +114,24 @@ let rec string_of_value expr =
               (string_of_value value1)
               (string_of_value value2)
               (string_of_value value3)
+  | ELet (id, value1, value2) ->
+      Printf.sprintf "(let %s = %s in %s)"
+              id
+              (string_of_value value1)
+              (string_of_value value2)
+  | EId id -> id
+
+let rec subst value str expr =
+  let subst expr =
+    subst value str expr
+  in
+  match expr with
+  | EId id when str = id -> value
+  | EOpr  (opr, expr1, expr2)   -> EOpr (opr, subst expr1, subst expr2)
+  | EComp (comp, expr1, expr2)  -> EComp (comp, subst expr1, subst expr2)
+  | EIf   (expr1, expr2, expr3) -> EIf (subst expr1, subst expr2, subst expr3)
+  | ELet  (id, expr1, expr2)    -> ELet (id, subst expr1, subst expr2)
+  | _ -> raise (Expr_error "bad substitution")
 
 let rec evaluate_value value =
   match value with
@@ -132,4 +152,6 @@ let rec evaluate_value value =
       | EBool false -> evaluate_value value2
       | _           -> raise if_type_mismatch
       )
+  | ELet (id, value1, value2) ->
+      evaluate_value (subst value1 id value2)
   | some_val -> some_val
