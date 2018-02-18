@@ -55,6 +55,7 @@ exp:
   | n = number  { n }
   | b = boolean { b }
   | l = letbind { l }
+  | i = ID      { EId i }
   ;
 
 number:
