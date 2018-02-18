@@ -131,7 +131,7 @@ let rec subst value str expr =
   | EComp (comp, expr1, expr2)  -> EComp (comp, subst expr1, subst expr2)
   | EIf   (expr1, expr2, expr3) -> EIf (subst expr1, subst expr2, subst expr3)
   | ELet  (id, expr1, expr2)    -> ELet (id, subst expr1, subst expr2)
-  | _ -> raise (Expr_error "bad substitution")
+  | _ -> expr
 
 let rec evaluate_value value =
   match value with
