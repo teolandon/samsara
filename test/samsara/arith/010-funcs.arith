@@ -1,0 +1,1 @@
+let func = fun x -> x < 2 in if func <- 6 then false else true

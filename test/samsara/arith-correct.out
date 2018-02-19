@@ -16,3 +16,9 @@
 	46
 008-parens.arith:
 	6
+009-lets.arith:
+	3
+010-funcs.arith:
+	true
+011-more-funcs.arith:
+	5
