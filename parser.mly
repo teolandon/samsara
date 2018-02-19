@@ -28,12 +28,15 @@
 %token ASSIGN
 %token LET
 %token IN
+%token FUN
 %token ARROW
+%token APPLY
 
 %token EOF
 
-%nonassoc ELSE IN
+%nonassoc ELSE IN ARROW
 %nonassoc LESS GREATER LESS_EQ GREATER_EQ
+%left APPLY
 %left MOD
 %left MINUS PLUS
 %left MULT DIV
@@ -55,6 +58,8 @@ exp:
   | n = number  { n }
   | b = boolean { b }
   | l = letbind { l }
+  | f = defun   { f }
+  | a = appl    { a }
   | i = ID      { EId i }
   ;
 
@@ -96,3 +101,11 @@ cond:
 letbind:
   | LET; id = ID; ASSIGN; e1 = expr; IN; e2 = expr
     { ELet (id, e1, e2) }
+
+defun:
+  | FUN; id = ID; ARROW; e = expr
+    {EFun (id, e)}
+
+appl:
+  | e1 = expr; APPLY; e2 = expr
+    { EAppl (e1, e2) }

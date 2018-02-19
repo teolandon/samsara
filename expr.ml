@@ -29,6 +29,8 @@ and value =
   | EIf   of (value * value * value)
   | ELet  of (string * value * value)
   | EId   of string
+  | EFun  of (string * value)
+  | EAppl of (value * value)
 
 let opr_helper (int_opr:int->int->int) (float_opr:float->float->float) num1 num2 =
   match (num1, num2) with
@@ -110,7 +112,7 @@ let rec string_of_value expr =
               (string_of_value value1)
               (string_of_value value2)
   | EIf (value1, value2, value3) ->
-      Printf.sprintf "(if %s %s %s)"
+      Printf.sprintf "(if %s then %s else %s)"
               (string_of_value value1)
               (string_of_value value2)
               (string_of_value value3)
@@ -119,7 +121,10 @@ let rec string_of_value expr =
               id
               (string_of_value value1)
               (string_of_value value2)
-  | EId id -> id
+  | EId id -> "id:" ^ id
+  | EFun  (id, expr) -> Printf.sprintf "(fun %s -> %s)"
+                                       id (string_of_value expr)
+  | EAppl (value1, value2) -> "(" ^ (string_of_value value1) ^ " <- " ^ (string_of_value value2) ^ ")"
 
 let rec subst value str expr =
   let subst expr =
@@ -130,7 +135,11 @@ let rec subst value str expr =
   | EOpr  (opr, expr1, expr2)   -> EOpr (opr, subst expr1, subst expr2)
   | EComp (comp, expr1, expr2)  -> EComp (comp, subst expr1, subst expr2)
   | EIf   (expr1, expr2, expr3) -> EIf (subst expr1, subst expr2, subst expr3)
-  | ELet  (id, expr1, expr2)    -> ELet (id, subst expr1, subst expr2)
+  | EAppl (expr1, expr2)        -> EAppl (subst expr1, subst expr2)
+  | ELet  (id, expr1, expr2) when id <> str ->
+      ELet (id, subst expr1, subst expr2)
+  | EFun  (id, expr) when id <> str ->
+      EFun (id, subst expr)
   | _ -> expr
 
 let rec evaluate_value value =
@@ -148,10 +157,15 @@ let rec evaluate_value value =
   | EIf (value1, value2, value3) ->
       let value1 = evaluate_value value1 in
       (match value1 with
-      | EBool true -> evaluate_value value1
-      | EBool false -> evaluate_value value2
+      | EBool true -> evaluate_value value2
+      | EBool false -> evaluate_value value3
       | _           -> raise if_type_mismatch
       )
   | ELet (id, value1, value2) ->
       evaluate_value (subst value1 id value2)
+  | EAppl (func, arg) ->
+      (match evaluate_value func with
+      | EFun (id, expr) -> evaluate_value (subst arg id expr)
+      | _ -> raise (Expr_error "LOL")
+      )
   | some_val -> some_val

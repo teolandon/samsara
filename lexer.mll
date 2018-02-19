@@ -44,6 +44,9 @@ rule read =
   | "then"   { THEN }
   | "else"   { ELSE }
   | "let"    { LET }
+  | "fun"    { FUN }
+  | "->"     { ARROW }
+  | "<-"     { APPLY }
   | "="      { ASSIGN }
   | "in"     { IN }
   | id       { ID (Lexing.lexeme lexbuf) }
