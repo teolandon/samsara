@@ -47,6 +47,7 @@ rule read =
   | "fun"    { FUN }
   | "->"     { ARROW }
   | "<-"     { APPLY }
+  | "fix"    { FIX }
   | "="      { ASSIGN }
   | "in"     { IN }
   | id       { ID (Lexing.lexeme lexbuf) }

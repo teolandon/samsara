@@ -31,6 +31,7 @@ and value =
   | EId   of string
   | EFun  of (string * value)
   | EAppl of (value * value)
+  | EFix  of (string * string * value)
 
 let opr_helper (int_opr:int->int->int) (float_opr:float->float->float) num1 num2 =
   match (num1, num2) with
@@ -122,8 +123,10 @@ let rec string_of_value expr =
               (string_of_value value1)
               (string_of_value value2)
   | EId id -> "id:" ^ id
-  | EFun  (id, expr) -> Printf.sprintf "(fun %s -> %s)"
-                                       id (string_of_value expr)
+  | EFun  (id, expr) ->
+      Printf.sprintf "(fun %s -> %s)" id (string_of_value expr)
+  | EFix  (name, id, expr) ->
+      Printf.sprintf "(fix %s %s -> %s)" name id (string_of_value expr)
   | EAppl (value1, value2) -> "(" ^ (string_of_value value1) ^ " <- " ^ (string_of_value value2) ^ ")"
 
 let rec subst value str expr =
@@ -140,6 +143,8 @@ let rec subst value str expr =
       ELet (id, subst expr1, subst expr2)
   | EFun  (id, expr) when id <> str ->
       EFun (id, subst expr)
+  | EFix  (name, id, expr) when id <> str && id <> name ->
+      EFix (name, id, subst expr)
   | _ -> expr
 
 let rec evaluate_value value =
@@ -166,6 +171,9 @@ let rec evaluate_value value =
   | EAppl (func, arg) ->
       (match evaluate_value func with
       | EFun (id, expr) -> evaluate_value (subst arg id expr)
+      | EFix (name, id, expr) as fixed ->
+          let new_fix = subst fixed name (subst arg id expr) in
+          evaluate_value new_fix
       | _ -> raise (Expr_error "LOL")
       )
   | some_val -> some_val

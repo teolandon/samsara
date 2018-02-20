@@ -37,6 +37,7 @@ let string_of_token token =
   | Parser.FUN    -> "fun"
   | Parser.ARROW  -> "->"
   | Parser.APPLY  -> "<-"
+  | Parser.FIX    -> "fix"
   | Parser.NAN    -> "NaN"
 
 let position_str lexbuf =

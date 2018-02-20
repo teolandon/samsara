@@ -31,6 +31,7 @@
 %token FUN
 %token ARROW
 %token APPLY
+%token FIX
 
 %token EOF
 
@@ -59,6 +60,7 @@ exp:
   | b = boolean { b }
   | l = letbind { l }
   | f = defun   { f }
+  | f = fixfun  { f }
   | a = appl    { a }
   | i = ID      { EId i }
   ;
@@ -105,6 +107,10 @@ letbind:
 defun:
   | FUN; id = ID; ARROW; e = expr
     {EFun (id, e)}
+
+fixfun:
+  | FIX; func = ID; id = ID; ARROW; e = expr
+    {EFix (func, id, e)}
 
 appl:
   | e1 = expr; APPLY; e2 = expr
