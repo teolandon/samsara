@@ -22,3 +22,13 @@
 	true
 011-more-funcs.arith:
 	5
+012-recursion.arith:
+	120
+013-some-assoc.arith:
+	10
+014-other-assoc.arith:
+	12
+015-mult-assoc.arith:
+	6
+016-mult-assoc.arith:
+	Invalid expression: LOL

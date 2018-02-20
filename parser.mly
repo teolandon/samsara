@@ -37,10 +37,10 @@
 
 %nonassoc ELSE IN ARROW
 %nonassoc LESS GREATER LESS_EQ GREATER_EQ
-%left APPLY
 %left MOD
 %left MINUS PLUS
 %left MULT DIV
+%left APPLY
 
 %start <Expr.value option> prog
 %%

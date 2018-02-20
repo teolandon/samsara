@@ -10,6 +10,32 @@ let files = ref []
 let addFile filename =
   files := filename :: !files
 
+let position_str lexbuf =
+  let pos = lexbuf.lex_curr_p in
+  sprintf "(%d:%d)"
+    pos.pos_lnum
+    (pos.pos_cnum - pos.pos_bol + 1)
+
+let str_of_error error lexbuf =
+  match error with
+    | SyntaxError msg ->
+        sprintf "Lexing Error: %s: %s" (position_str lexbuf) msg
+    | Parser.Error ->
+        sprintf "Syntax error %s: parser error" (position_str lexbuf)
+    | Expr.Expr_error str ->
+        sprintf "Invalid expression: %s" str
+    | _ -> "Unknown error occured"
+
+let failWith error lexbuf =
+  match error with
+    | SyntaxError msg ->
+        printf "Lexing Error: %s: %s" (position_str lexbuf) msg
+    | Parser.Error ->
+        printf "Syntax error %s: parser error" (position_str lexbuf)
+    | Expr.Expr_error str ->
+        printf "Invalid expression: %s" str
+    | _ -> printf "Unknown error occured"
+
 let string_of_token token =
   match token with
   | Parser.EOF -> ""
@@ -40,40 +66,32 @@ let string_of_token token =
   | Parser.FIX    -> "fix"
   | Parser.NAN    -> "NaN"
 
-let position_str lexbuf =
-  let pos = lexbuf.lex_curr_p in
-  sprintf "(%d:%d)"
-    pos.pos_lnum
-    (pos.pos_cnum - pos.pos_bol + 1)
-
 let parse_with_error lexbuf =
   try Parser.prog Lexer.read lexbuf with
-    | SyntaxError msg ->
-        printf "Lexing Error: %s: %s" (position_str lexbuf) msg;
-        None
-    | Parser.Error ->
-        printf "Syntax error %s: parser error" (position_str lexbuf);
-        None
-    | Expr.Expr_error str ->
-        printf "Invalid expression: %s" str;
-        None
+    | _ as err -> failWith err lexbuf; None
 
-let print_evaluated lexbuf =
-  match parse_with_error lexbuf with
-  | Some expr -> Expr.string_of_value (Expr.evaluate_value expr);
-  | None -> ""
+let evaluated lexbuf =
+  try
+    match parse_with_error lexbuf with
+    | Some expr -> Expr.string_of_value (Expr.evaluate_value expr);
+    | None -> ""
+  with
+    | _ as err -> str_of_error err lexbuf
 
-let print_non_evaluated lexbuf =
-  match parse_with_error lexbuf with
-  | Some expr -> Expr.string_of_value expr;
-  | None -> ""
+let non_evaluated lexbuf =
+  try
+    match parse_with_error lexbuf with
+    | Some expr -> Expr.string_of_value expr;
+    | None -> ""
+  with
+    | _ as err -> str_of_error err lexbuf
 
 let parsed_str filename =
   let in_f = open_in filename in
   let lexbuf = Lexing.from_channel in_f in
   printf "%s:\n\t" filename;
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
-  printf "%s\n" (print_non_evaluated lexbuf);
+  printf "%s\n" (non_evaluated lexbuf);
   close_in in_f;;
 
 let lexed_str filename =
@@ -114,7 +132,7 @@ let loop filename =
   let lexbuf = Lexing.from_channel in_f in
   printf "%s:\n\t" filename;
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
-  printf "%s\n" (print_evaluated lexbuf);
+  printf "%s\n" (evaluated lexbuf);
   close_in in_f;;
 
 let rec loop_files files func =
