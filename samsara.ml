@@ -129,7 +129,7 @@ type named_chan = {
 let read_and_apply_func named_chan func =
   match named_chan with {name=filename;chan=in_chan} ->
   let lexbuf = Lexing.from_channel in_chan in
-  printf "%s:\n\t" filename;
+  printf "%s:\n" filename;
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
   printf "%s\n" (func lexbuf)
 

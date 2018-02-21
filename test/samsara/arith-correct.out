@@ -1,34 +1,34 @@
 000-simple.arith:
-	20
+20
 001-plus-minus.arith:
-	30
+30
 002-minus-plus.arith:
-	20
+20
 003-minus-minus.arith:
-	10
+10
 004-division-simple.arith:
-	100
+100
 005-division-assoc.arith:
-	10
+10
 006-mult.arith:
-	64
+64
 007-priority.arith:
-	46
+46
 008-parens.arith:
-	6
+6
 009-lets.arith:
-	3
+3
 010-funcs.arith:
-	true
+true
 011-more-funcs.arith:
-	5
+5
 012-recursion.arith:
-	120
+120
 013-some-assoc.arith:
-	10
+10
 014-other-assoc.arith:
-	12
+12
 015-mult-assoc.arith:
-	6
+6
 016-mult-assoc.arith:
-	Invalid expression: LOL
+Invalid expression: LOL

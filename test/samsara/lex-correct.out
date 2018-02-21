@@ -1,16 +1,16 @@
 000-simple.arith:
-	( + 10 10 ) 
+( + 10 10 ) 
 001-nosense.arith:
-	+ ( 123 true if ) ( 
++ ( 123 true if ) ( 
 003-a-lot-of-parens.arith:
-	( ) ( ) ( ) ( ) ( ) ) ) ) ) 
+( ) ( ) ( ) ( ) ( ) ) ) ) ) 
 004-floating.arith:
-	( / 123.123 
+( / 123.123 
 005-comps.arith:
-	<= <= <= < < < > 
+<= <= <= < < < > 
 006-all.arith:
-	/ * if if if ( + 123 0 NaN ) 
+/ * if if if ( + 123 0 NaN ) 
 007-empty.arith:
-	[No tokens]
+[No tokens]
 007-new-stuff.arith:
-	fun -> let id:asdff = = = 8 + 2 <- fix fun 
+fun -> let id:asdff = = = 8 + 2 <- fix fun 
