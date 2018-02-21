@@ -122,7 +122,7 @@ let rec string_of_value expr =
               id
               (string_of_value value1)
               (string_of_value value2)
-  | EId id -> "id:" ^ id
+  | EId id -> id
   | EFun  (id, expr) ->
       Printf.sprintf "(fun %s -> %s)" id (string_of_value expr)
   | EFix  (name, id, expr) ->
