@@ -34,6 +34,15 @@ and expr = [
   | `EAppl of (expr * expr)
 ]
 
+type value = [
+  | `EBool  of bool
+  | `EInt   of int
+  | `EFloat of float
+  | `ENaN
+  | `EFun  of (string * expr)
+  | `EFix  of (string * string * expr)
+]
+
 let is_value (expr:expr) =
   match expr with
   | `EBool _ | `EInt _ | `EFloat _ | `ENaN
@@ -178,8 +187,8 @@ let rec step (expr:expr) =
       | `EBool false -> expr3
       | _           -> raise if_type_mismatch
       )
-  | `ELet (id, value1, value2) ->
-      subst value1 id value2
+  | `ELet (id, expr1, expr2) ->
+      subst expr1 id expr2
   | `EAppl (func, arg) when not (is_value func) ->
       `EAppl (step func, arg)
   | `EAppl (func, arg) ->
@@ -189,10 +198,17 @@ let rec step (expr:expr) =
           subst fixed name (subst arg id expr)
       | _ -> raise (Expr_error "LOL")
       )
-  | value when is_value value -> value
-  | _                         -> raise (Expr_error "Invalid type injection")
+  | value as v -> v
 
 let rec evaluate_value value =
   match value with
   | value when is_value value -> value
   | some_val -> evaluate_value (step some_val)
+
+let rec evaluate_print_steps value =
+  match value with
+  | value when is_value value -> value
+  | some_val ->
+      let result = (step some_val) in
+      print_endline (string_of_value value);
+      evaluate_print_steps result
