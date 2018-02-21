@@ -42,7 +42,7 @@
 %left MULT DIV
 %left APPLY
 
-%start <Expr.value option> prog
+%start <Expr.expr option> prog
 %%
 
 prog:
@@ -62,22 +62,22 @@ exp:
   | f = defun   { f }
   | f = fixfun  { f }
   | a = appl    { a }
-  | i = ID      { EId i }
+  | i = ID      { `EId i }
   ;
 
 number:
-  | i = INT   { EInt i }
-  | f = FLOAT { EFloat f }
+  | i = INT   { `EInt i }
+  | f = FLOAT { `EFloat f }
   | o = opr   { o }
-  | NAN       { ENaN }
+  | NAN       { `ENaN }
 
 boolean:
-  | b = BOOL { EBool b }
+  | b = BOOL { `EBool b }
   | c = comp { c }
 
 opr:
   | a = expr; operation = operator; b = expr;
-    { EOpr (operation, a, b) }
+    { `EOpr (operation, a, b) }
   ;
 %inline operator:
   | PLUS  { EPlus }
@@ -88,7 +88,7 @@ opr:
 
 comp:
   | a = expr; comp = comparison; b = expr
-    { EComp (comp, a, b) }
+    { `EComp (comp, a, b) }
   ;
 %inline comparison:
   | LESS       { ELess }
@@ -98,20 +98,20 @@ comp:
 
 cond:
   | IF; c = expr; THEN; e1 = expr; ELSE; e2 = expr
-    { EIf (c, e1, e2) }
+    { `EIf (c, e1, e2) }
 
 letbind:
   | LET; id = ID; ASSIGN; e1 = expr; IN; e2 = expr
-    { ELet (id, e1, e2) }
+    { `ELet (id, e1, e2) }
 
 defun:
   | FUN; id = ID; ARROW; e = expr
-    {EFun (id, e)}
+    {`EFun (id, e)}
 
 fixfun:
   | FIX; func = ID; id = ID; ARROW; e = expr
-    {EFix (func, id, e)}
+    {`EFix (func, id, e)}
 
 appl:
   | e1 = expr; APPLY; e2 = expr
-    { EAppl (e1, e2) }
+    { `EAppl (e1, e2) }
