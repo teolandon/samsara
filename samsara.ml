@@ -2,6 +2,7 @@ open Printf
 open Lexer
 open Lexing
 
+let stdin_flag   = ref false
 let lex_flag   = ref false
 let parse_flag = ref false
 let step_flag = ref false
@@ -120,30 +121,41 @@ let lexxd_str lexbuf =
   | Expr.Expr_error str ->
       sprintf "Invalid expression: %s" str
 
-let loop filename func =
-  let in_f = open_in filename in
-  let lexbuf = Lexing.from_channel in_f in
+type named_chan = {
+  name : string;
+  chan : in_channel;
+}
+
+let read_and_apply_func named_chan func =
+  match named_chan with {name=filename;chan=in_chan} ->
+  let lexbuf = Lexing.from_channel in_chan in
   printf "%s:\n\t" filename;
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
-  printf "%s\n" (func lexbuf);
-  close_in in_f;;
+  printf "%s\n" (func lexbuf)
 
-let evaluate filename =
-  loop filename evaluated
+let evaluate in_chan =
+  read_and_apply_func in_chan evaluated
 
-let parsed_str filename =
-  loop filename non_evaluated
+let parsed_str in_chan =
+  read_and_apply_func in_chan non_evaluated
 
-let lexed_str filename =
-  loop filename lexxd_str
+let lexed_str in_chan =
+  read_and_apply_func in_chan lexxd_str
 
-let step filename =
-  loop filename step_and_print
+let step in_chan =
+  read_and_apply_func in_chan step_and_print
 
 let rec loop_files files func =
   match files with
   | [] -> ()
-  | (f::fs) -> func f; loop_files fs func
+  | (f::fs) ->
+      let in_c = open_in f in
+      func {name=f;chan=in_c};
+      close_in in_c;
+      loop_files fs func
+
+let read_stdin func =
+  func {name="stdin";chan=stdin}
 
 let usageMsg = "Usage: samsara [-lex] [-parse] FILE..."
 
@@ -151,16 +163,22 @@ let speclist = [
   ("-lex", Arg.Set lex_flag, "prints the lexx'd list of tokens");
   ("-parse", Arg.Set parse_flag, "prints the parsed AST");
   ("-step", Arg.Set step_flag, "prints step-by-step evaluation");
+  ("-stdin", Arg.Set stdin_flag, "parses from stdin instead of files");
   ("--help", Arg.Unit (fun () -> ()), ""); (* Supresses flag *)
 ]
 
 let main () =
   Arg.parse speclist addFile usageMsg;
   let files = (List.rev !files) in
+  let read_function =
+    match (!stdin_flag, files) with
+    | (true, _) | (_, []) -> read_stdin
+    | _                   -> loop_files files
+  in
   match (!lex_flag, !parse_flag, !step_flag) with
-  | (_, _, true) -> loop_files     files step
-  | (_, true, _) -> loop_files     files parsed_str
-  | (true, _, _) -> loop_files     files lexed_str
-  | _            -> loop_files     files evaluate
+  | (_, _, true) -> read_function step
+  | (_, true, _) -> read_function parsed_str
+  | (true, _, _) -> read_function lexed_str
+  | _            -> read_function evaluate
 
 let () = main ()
