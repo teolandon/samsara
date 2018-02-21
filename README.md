@@ -9,9 +9,9 @@ numbers. It also supports if-expressions and booleans. For a deeper explanation
 of the syntax, refer to the __Syntax__ section below.
 
 ## Execution
-Run samsara in the terminal, using `./samsara file1 file2 ...`, where the file
-arguments are paths to files that contain a samsara expression. samsara will
-then print out the evaluation of each of these expressions.
+Run samsara in the terminal, using `./samsara.native file1 file2 ...`, where the
+file arguments are paths to files that contain a samsara expression. samsara
+will then print out the evaluation of each of these expressions.
 
 samsara supports two compilation flags:
 
