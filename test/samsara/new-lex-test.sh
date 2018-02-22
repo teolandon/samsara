@@ -18,4 +18,4 @@ fi
 
 echo "$TEXT" > "$DIR/lex/${array[NUM]}-${NAME}"
 
-printf '%s:\n\t%s\n' "${array[NUM]}-$NAME" "$RESULT" >> "$DIR/lex-correct.out"
+printf '%s:\n%s\n' "${array[NUM]}-$NAME" "$RESULT" >> "$DIR/lex-correct.out"

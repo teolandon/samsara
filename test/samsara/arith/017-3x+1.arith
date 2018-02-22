@@ -1,0 +1,11 @@
+let iseven = fun x -> (x % 2) < 1 in
+let func = fix f depth -> fun num ->
+  if num < 2
+  then depth
+  else
+    if (iseven <- num)
+    then f <- (depth + 1) <- (num / 2)
+    else f <- (depth + 1) <- (3 * num + 1)
+in
+let var = 6 in
+func <- 0 <- var
