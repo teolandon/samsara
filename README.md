@@ -3,25 +3,34 @@ A Samsara compiler in OCaml. Also an assignment repo for CSC-312
 Language Implementation with Peter Michael Osera. By Theo Kalfas.
 
 # samsara
-samsara is currently an interpreted language using S-Expressions. It supports
-basic arithmetic operations and comparisons on integers and floating-point
-numbers. It also supports if-expressions and booleans. For a deeper explanation
-of the syntax, refer to the __Syntax__ section below.
+samsara is currently a functional language with infix operators and recursion.
+It supports basic arithmetic operations and comparisons on integers and
+floating-point numbers. It also supports if-expressions, booleans, function
+declaraction, and let-bindings. For a deeper explanation of the syntax, refer to
+the __Syntax__ section below.
 
 ## Execution
 Run samsara in the terminal, using `./samsara.native file1 file2 ...`, where the
 file arguments are paths to files that contain a samsara expression. samsara
-will then print out the evaluation of each of these expressions.
+will then print out the evaluation of each of these expressions. If no file is
+specified, or if the `-stdin` flag is set, samsara will read from stdin instead.
+This is useful when piping input for samsara, or as a quick execution of a
+samsara expression in the terminal. Hint: to send EOF in the terminal, press
+`Crtl-D`.
 
-samsara supports two compilation flags:
+samsara supports several execution flags:
 
 * _-lex_ prints out the lexed tokens.
 * _-parse_ prints out the parsed AST in S-Expression format.
+* _-step_ prints out all the small-step evaluations of the samsara expression
+    given until the final evaluation to a singular value.
+* _-stdin_ switches input from files to stdin.
 
 ## Syntax
 The syntax is described by the following context free grammar:
 
-    e    ::= (e) | num | bool | if e then e else e
+    e    ::= (e) | num | bool | if e then e else e | fun x -> e | fix f x -> e
+           | x | e <- e | let x = e in e
     num  ::= (num) | n | f | NaN | num + num | num - num
            | num * num | num / num | num % num
     bool ::= (bool) | true | false | num < num | num <= num | num > num
@@ -52,6 +61,26 @@ Where:
         of the `else` keyword. This is due to the left associativity of the
         operations. Use parentheses if you want to catch a bigger expression.
     * The first `e` expression must evaluate to a boolean.
+* `fun x -> e` defines a function that takes a single argument `x` that
+    evalutates to the expression `e` when applied to an argument.
+* `fix f x -> e` defines a function that takes a single argument `x` that
+    evalutates to the expression `e` when applied to an argument. `f` refers to
+    the function itself, allowing for recursive calls in the function body `e`.
+* `e <- e` refers to function application, where the first `e` is  a
+    function that takes a single argument, and `e` is applied to that
+    function and substituted in its body.
+    * To define functions that take more than 1 argument we can use the sequence
+        `fun x -> fun y -> ... -> e`, so that we can then apply to it many
+        arguments using the sequence `arg1 <- arg2 <- arg3 <- ...`, such that
+        the first argument is applied and leaves a function that takes another
+        argument. Thus, we can have functions that seemingly take many
+        arguments.
+* `let x = e in e` defines a let-binding of the variable `x` to the first
+    expression, inside the second expression. An example is `let x = 2 in x + 2`
+    will evaluate to `2 + 2`.
+* `x` refers to a variable name, defined in lets and functions, which can be
+    found in function bodies and let-binding bodies. It will be replaced by its
+    definition in let-bindings and by the argument applied in functions.
 
 Some operations have margin for errors and type mismatches. These are usually
 raised with an error message describing the error, but not its location, because
@@ -60,8 +89,12 @@ now.
 
 Some more notes:
 
-A samsara file should contain a single samsara expression. Number literals
-cannot be followed by letters without a space separating them.
+* A samsara file should contain a single samsara expression. Number literals
+  cannot be followed by letters without a space separating them.
+
+* Function application is left-associative. Due to the specific order of
+    operations, arguments such as `2 + 2` in a chain of function
+    applications have to be surrounded by parentheses.
 
 ## Dependencies
 samsara is written in OCaml, and uses the core library exclusively. Follow
@@ -140,6 +173,19 @@ testing and keep commits clean and correct. Refer to the HOOKS.md file in the
 **hooks/** directory.
 
 # Changelog
+
+## Assignment 04 - 2018-02-23
+
+### Added
+* Let bindings, functions and function application.
+* Compilation flags for step-by-step evaluation and stdin input.
+* Tests for recursion, lets, and function application.
+
+### Changed
+* `pre-commit` hook now cleans up after itself.
+
+### Known bugs
+* Insufficient and inaccurate error reporting.
 
 ## Assignment 03 - 2018-02-16
 
