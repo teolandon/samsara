@@ -90,8 +90,7 @@ now.
 Some more notes:
 
 * A samsara file should contain a single samsara expression. Number literals
-  cannot be followed by letters without a space separating them.
-
+    cannot be followed by letters without a space separating them.
 * Function application is left-associative. Due to the specific order of
     operations, arguments such as `2 + 2` in a chain of function
     applications have to be surrounded by parentheses.
