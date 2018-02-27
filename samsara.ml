@@ -2,10 +2,11 @@ open Printf
 open Lexer
 open Lexing
 
-let stdin_flag   = ref false
+let stdin_flag = ref false
 let lex_flag   = ref false
 let parse_flag = ref false
-let step_flag = ref false
+let step_flag  = ref false
+let type_flag  = ref false
 
 let files = ref []
 
@@ -67,6 +68,9 @@ let string_of_token token =
   | Parser.APPLY  -> "<-"
   | Parser.FIX    -> "fix"
   | Parser.NAN    -> "NaN"
+  | Parser.T_NUM  -> "num"
+  | Parser.T_BOOL -> "bool"
+  | Parser.COLON  -> ":"
 
 let parse_with_error lexbuf =
   try Parser.prog Lexer.read lexbuf with
@@ -76,6 +80,14 @@ let evaluated lexbuf =
   try
     match parse_with_error lexbuf with
     | Some expr -> Expr.string_of_value (Expr.evaluate_value expr);
+    | None -> ""
+  with
+    | _ as err -> str_of_error err lexbuf
+
+let typechecked lexbuf =
+  try
+    match parse_with_error lexbuf with
+    | Some expr -> Expr.string_of_type (Expr.typecheck [] expr);
     | None -> ""
   with
     | _ as err -> str_of_error err lexbuf
@@ -142,6 +154,9 @@ let parsed_str in_chan =
 let lexed_str in_chan =
   read_and_apply_func in_chan lexxd_str
 
+let typecheck in_chan =
+  read_and_apply_func in_chan typechecked
+
 let step in_chan =
   read_and_apply_func in_chan step_and_print
 
@@ -160,10 +175,11 @@ let read_stdin func =
 let usageMsg = "Usage: samsara [-lex] [-parse] FILE..."
 
 let speclist = [
-  ("-lex", Arg.Set lex_flag, "prints the lexx'd list of tokens");
+  ("-lex",   Arg.Set lex_flag, "prints the lexx'd list of tokens");
   ("-parse", Arg.Set parse_flag, "prints the parsed AST");
-  ("-step", Arg.Set step_flag, "prints step-by-step evaluation");
+  ("-step",  Arg.Set step_flag, "prints step-by-step evaluation");
   ("-stdin", Arg.Set stdin_flag, "parses from stdin instead of files");
+  ("-type",  Arg.Set type_flag, "only typechecks");
   ("--help", Arg.Unit (fun () -> ()), ""); (* Supresses flag *)
 ]
 
@@ -175,10 +191,11 @@ let main () =
     | (true, _) | (_, []) -> read_stdin
     | _                   -> loop_files files
   in
-  match (!lex_flag, !parse_flag, !step_flag) with
-  | (_, _, true) -> read_function step
-  | (_, true, _) -> read_function parsed_str
-  | (true, _, _) -> read_function lexed_str
+  match (!lex_flag, !parse_flag, !step_flag, !type_flag) with
+  | (_, _, _, true) -> read_function typecheck
+  | (_, _, true, _) -> read_function step
+  | (_, true, _, _) -> read_function parsed_str
+  | (true, _, _, _) -> read_function lexed_str
   | _            -> read_function evaluate
 
 let () = main ()

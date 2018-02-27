@@ -1,6 +1,10 @@
 %{
   open Expr
 %}
+%token T_NUM
+%token T_BOOL
+%token COLON
+
 %token <int> INT
 %token <float> FLOAT
 %token <bool> BOOL
@@ -35,7 +39,8 @@
 
 %token EOF
 
-%nonassoc ELSE IN ARROW
+%right ARROW
+%nonassoc ELSE IN
 %nonassoc LESS GREATER LESS_EQ GREATER_EQ
 %left MOD
 %left MINUS PLUS
@@ -101,17 +106,24 @@ cond:
     { `EIf (c, e1, e2) }
 
 letbind:
-  | LET; id = ID; ASSIGN; e1 = expr; IN; e2 = expr
-    { `ELet (id, e1, e2) }
+  | LET; id = ID; COLON; typ = typeset; ASSIGN; e1 = expr; IN; e2 = expr
+    { `ELet (id, typ, e1, e2) }
 
 defun:
-  | FUN; id = ID; ARROW; e = expr
-    {`EFun (id, e)}
+  | FUN; LEFT_PAREN; id = ID; COLON; typ = typeset; RIGHT_PAREN; COLON;
+    LEFT_PAREN; functype = typeset; RIGHT_PAREN; ARROW; e = expr
+      {print_endline "trying" ;`EFun (functype, id, typ, e)}
 
 fixfun:
-  | FIX; func = ID; id = ID; ARROW; e = expr
-    {`EFix (func, id, e)}
+  | FIX; func = ID; LEFT_PAREN; id = ID; COLON; typ = typeset; RIGHT_PAREN;
+    COLON; LEFT_PAREN; functype = typeset; RIGHT_PAREN; ARROW; e = expr
+      {`EFix (func, functype, id, typ, e)}
 
 appl:
   | e1 = expr; APPLY; e2 = expr
     { `EAppl (e1, e2) }
+
+typeset:
+  | t1 = typeset; ARROW; t2 = typeset {print_endline "pairing"; TPair (t1, t2) }
+  | T_NUM  { print_endline "It's a num"; TNum }
+  | T_BOOL { print_endline "It's a bool"; TBool }

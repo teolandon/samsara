@@ -48,6 +48,9 @@ rule read =
   | "->"     { ARROW }
   | "<-"     { APPLY }
   | "fix"    { FIX }
+  | "num"    { T_NUM }
+  | "bool"   { T_BOOL }
+  | ":"      { COLON }
   | "="      { ASSIGN }
   | "in"     { IN }
   | id       { ID (Lexing.lexeme lexbuf) }

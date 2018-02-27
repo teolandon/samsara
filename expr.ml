@@ -1,4 +1,5 @@
 exception Expr_error of string
+exception Type_error of string
 
 let invalid_opr =
   Expr_error "Invalid operation, only accepts numbers"
@@ -9,13 +10,18 @@ let invalid_comp =
 let div_by_zero =
   Expr_error "Divide by zero"
 
-let if_type_mismatch =
-  Expr_error "Type mismatch, if accepts booleans as first argument"
-
 let modulo_error =
   Expr_error "Modulo operation only accepts integers"
 
-type opr =
+let if_type_mismatch =
+  Type_error "Type mismatch, if accepts booleans as first argument"
+
+let generic_type_err =
+  Type_error "Type mismatch"
+
+type typ =
+  | TBool | TNum | TPair of (typ * typ)
+and opr =
   | EPlus | EMinus | EMult | EDiv | EMod
 and  comp =
   | ELess | EGreater | ELessEq | EGreaterEq
@@ -24,23 +30,14 @@ and expr = [
   | `EInt   of int
   | `EFloat of float
   | `ENaN
-  | `EFun  of (string * expr)
-  | `EFix  of (string * string * expr)
+  | `EFun  of (typ * string * typ * expr)
+  | `EFix  of (string * typ * string * typ * expr)
   | `EOpr  of (opr * expr * expr)
   | `EComp of (comp * expr * expr)
   | `EIf   of (expr * expr * expr)
-  | `ELet  of (string * expr * expr)
+  | `ELet  of (string * typ * expr * expr)
   | `EId   of string
   | `EAppl of (expr * expr)
-]
-
-type value = [
-  | `EBool  of bool
-  | `EInt   of int
-  | `EFloat of float
-  | `ENaN
-  | `EFun  of (string * expr)
-  | `EFix  of (string * string * expr)
 ]
 
 let is_value (expr:expr) =
@@ -48,6 +45,24 @@ let is_value (expr:expr) =
   | `EBool _ | `EInt _ | `EFloat _ | `ENaN
   | `EFun _ | `EFix _ -> true
   | _ -> false
+
+let rec final_type typ =
+  match typ with
+  | TPair (_, rest) -> final_type rest
+  | _               -> typ
+
+type context = (string * typ) list
+
+let get_type context id =
+  List.assoc id context
+
+let add_bind (context:context) (id:string) (typ:typ) =
+  try
+    ignore(get_type context id);
+    let new_list = List.remove_assoc id context in
+    (id, typ) :: new_list
+  with
+    Not_found -> (id, typ) :: context
 
 let opr_helper (int_opr:int->int->int) (float_opr:float->float->float) num1 num2 =
   match (num1, num2) with
@@ -112,6 +127,12 @@ let string_of_comp comp =
   | ELessEq -> "<="
   | EGreaterEq -> ">="
 
+let rec string_of_type typ =
+  match typ with
+  | TBool -> "bool"
+  | TNum  -> "num"
+  | TPair (t1, t2)  -> (string_of_type t1) ^ "->" ^ (string_of_type t2)
+
 let rec string_of_value expr =
   match expr with
   | `EInt a   -> string_of_int a
@@ -133,17 +154,22 @@ let rec string_of_value expr =
               (string_of_value value1)
               (string_of_value value2)
               (string_of_value value3)
-  | `ELet (id, value1, value2) ->
-      Printf.sprintf "(let %s = %s in %s)"
-              id
+  | `ELet (id, typ, value1, value2) ->
+      Printf.sprintf "(let %s:%s = %s in %s)"
+              id (string_of_type typ)
               (string_of_value value1)
               (string_of_value value2)
   | `EId id -> id
-  | `EFun  (id, expr) ->
-      Printf.sprintf "(fun %s -> %s)" id (string_of_value expr)
-  | `EFix  (name, id, expr) ->
-      Printf.sprintf "(fix %s %s -> %s)" name id (string_of_value expr)
-  | `EAppl (value1, value2) -> "(" ^ (string_of_value value1) ^ " <- " ^ (string_of_value value2) ^ ")"
+  | `EFun  (functype, id, vartype, expr) ->
+      Printf.sprintf "(fun (%s:%s) : %s -> %s)"
+                     id (string_of_type vartype) (string_of_type functype)
+                     (string_of_value expr)
+  | `EFix  (name, functype, id, vartype, expr) ->
+      Printf.sprintf "(fix %s (%s:%s) : %s -> %s)"
+                     name id (string_of_type vartype) (string_of_type functype)
+                     (string_of_value expr)
+  | `EAppl (value1, value2) ->
+      "(" ^ (string_of_value value1) ^ " <- " ^ (string_of_value value2) ^ ")"
 
 let rec subst value str expr =
   let subst expr =
@@ -155,12 +181,12 @@ let rec subst value str expr =
   | `EComp (comp, expr1, expr2)  -> `EComp (comp, subst expr1, subst expr2)
   | `EIf   (expr1, expr2, expr3) -> `EIf (subst expr1, subst expr2, subst expr3)
   | `EAppl (expr1, expr2)        -> `EAppl (subst expr1, subst expr2)
-  | `ELet  (id, expr1, expr2) when id <> str ->
-      `ELet (id, subst expr1, subst expr2)
-  | `EFun  (id, expr) when id <> str ->
-      `EFun (id, subst expr)
-  | `EFix  (name, id, expr) when id <> str && id <> name ->
-      `EFix (name, id, subst expr)
+  | `ELet  (id, typ, expr1, expr2) when id <> str ->
+      `ELet (id, typ, subst expr1, subst expr2)
+  | `EFun  (functype, id, vartype, expr) when id <> str ->
+      `EFun (functype, id, vartype, subst expr)
+  | `EFix  (name, functype, id, vartype, expr) when id <> str && id <> name ->
+      `EFix (name, functype, id, vartype, subst expr)
   | _ -> expr
 
 let rec step (expr:expr) =
@@ -187,14 +213,13 @@ let rec step (expr:expr) =
       | `EBool false -> expr3
       | _           -> raise if_type_mismatch
       )
-  | `ELet (id, expr1, expr2) ->
-      subst expr1 id expr2
+  | `ELet (id, _, expr1, expr2) -> subst expr1 id expr2
   | `EAppl (func, arg) when not (is_value func) ->
       `EAppl (step func, arg)
   | `EAppl (func, arg) ->
       (match func with
-      | `EFun (id, expr) -> subst arg id expr
-      | `EFix (name, id, expr) as fixed ->
+      | `EFun (functype, id, vartype, expr) -> subst arg id expr
+      | `EFix (name, functype, id, vartype, expr) as fixed ->
           subst fixed name (subst arg id expr)
       | _ -> raise (Expr_error "LOL")
       )
@@ -212,3 +237,61 @@ let rec evaluate_print_steps value =
       let result = (step some_val) in
       print_endline (string_of_value value);
       evaluate_print_steps result
+
+let rec typecheck context expr =
+  match expr with
+  | `EInt _ | `EFloat _ | `ENaN -> TNum
+  | `EBool _                  -> TBool
+  | `EOpr (opr, expr1, expr2) ->
+      let t1 = typecheck context expr1 in
+      let t2 = typecheck context expr2 in
+      if (t1, t2) = (TNum, TNum) then
+        TNum
+      else
+        raise generic_type_err
+  | `EComp (comp, expr1, expr2) ->
+      let t1 = typecheck context expr1 in
+      let t2 = typecheck context expr2 in
+      if (t1, t2) = (TNum, TNum) then
+        TBool
+      else
+        raise generic_type_err
+  | `EIf (expr1, expr2, expr3) ->
+      let t1 = typecheck context expr1 in
+      let t2 = typecheck context expr2 in
+      let t3 = typecheck context expr3 in
+      if t1 = TBool && t2 = t3 then
+        t2
+      else
+        raise generic_type_err
+  | `ELet (id, typ, expr1, expr2) ->
+      let new_context = add_bind context id typ in
+      if typ = (typecheck context expr1) then
+        typecheck new_context expr2
+      else
+        raise generic_type_err
+  | `EId id -> get_type context id
+  | `EFun (functype, id, vartype, expr) ->
+      let new_context = add_bind context id vartype in
+      if functype = (typecheck new_context expr) then
+        TPair (vartype, functype)
+      else
+        raise generic_type_err
+  | `EFix  (name, functype, id, vartype, expr) ->
+      let return_type = final_type functype in
+      let new_context = add_bind context id vartype in
+      let new_context = add_bind new_context name functype in
+      if return_type = (typecheck new_context expr) then
+        functype
+      else
+        raise generic_type_err
+  | `EAppl (expr1, expr2) ->
+      let t1 = typecheck context expr1 in
+      let t2 = typecheck context expr2 in
+      match t1 with
+      | TPair (argtype, ret_type) ->
+          if t2 = argtype then
+            ret_type
+          else
+            raise generic_type_err
+      | _ -> raise generic_type_err
