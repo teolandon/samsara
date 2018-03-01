@@ -17,20 +17,20 @@
 008-parens.arith:
 6
 009-lets.arith:
-Syntax error (1:8): parser error
+3
 010-funcs.arith:
-Syntax error (1:11): parser error
+true
 011-more-funcs.arith:
-Syntax error (1:14): parser error
+5
 012-recursion.arith:
-Syntax error (1:16): parser error
+120
 013-some-assoc.arith:
-Syntax error (1:8): parser error
+10
 014-other-assoc.arith:
-Syntax error (1:8): parser error
+12
 015-mult-assoc.arith:
-Syntax error (1:8): parser error
+6
 016-mult-assoc.arith:
-Syntax error (1:8): parser error
+Invalid expression: LOL
 017-3x+1.arith:
-Syntax error (1:13): parser error
+8

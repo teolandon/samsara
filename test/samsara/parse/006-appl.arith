@@ -1,1 +1,1 @@
-let f = fun x -> fun y -> fun z -> (x - y) + z in f <- 5 <- 2 <- 2
+let f:num>>num>>num>>num = fun (x:num):num>>num>>num -> fun (y:num):num>>num -> fun (z:num):num -> (x - y) + z in f <- 5 <- 2 <- 2

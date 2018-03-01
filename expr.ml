@@ -131,7 +131,7 @@ let rec string_of_type typ =
   match typ with
   | TBool -> "bool"
   | TNum  -> "num"
-  | TPair (t1, t2)  -> (string_of_type t1) ^ "->" ^ (string_of_type t2)
+  | TPair (t1, t2)  -> (string_of_type t1) ^ ">>" ^ (string_of_type t2)
 
 let rec string_of_value expr =
   match expr with

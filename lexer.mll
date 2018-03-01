@@ -36,7 +36,11 @@ rule read =
   | newline  { next_line lexbuf; read lexbuf }
   | int      { INT (int_of_string (Lexing.lexeme lexbuf)) }
   | float    { FLOAT (float_of_string (Lexing.lexeme lexbuf)) }
-  | comp     { comp_of_str (Lexing.lexeme lexbuf) }
+  | "<="     { LESS_EQ }
+  | ">="     { GREATER_EQ }
+  | ">>"     { TYPECHAIN }
+  | "<"      { LESS }
+  | ">"      { GREATER }
   | "true"   { BOOL true }
   | "false"  { BOOL false }
   | "NaN"    { NAN }

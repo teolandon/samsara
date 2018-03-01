@@ -34,13 +34,14 @@
 %token IN
 %token FUN
 %token ARROW
+%token TYPECHAIN
 %token APPLY
 %token FIX
 
 %token EOF
 
-%right ARROW
-%nonassoc ELSE IN
+%right TYPECHAIN
+%nonassoc ELSE IN ARROW
 %nonassoc LESS GREATER LESS_EQ GREATER_EQ
 %left MOD
 %left MINUS PLUS
@@ -111,12 +112,12 @@ letbind:
 
 defun:
   | FUN; LEFT_PAREN; id = ID; COLON; typ = typeset; RIGHT_PAREN; COLON;
-    LEFT_PAREN; functype = typeset; RIGHT_PAREN; ARROW; e = expr
-      {print_endline "trying" ;`EFun (functype, id, typ, e)}
+    functype = typeset; ARROW; e = expr
+      {`EFun (functype, id, typ, e)}
 
 fixfun:
   | FIX; func = ID; LEFT_PAREN; id = ID; COLON; typ = typeset; RIGHT_PAREN;
-    COLON; LEFT_PAREN; functype = typeset; RIGHT_PAREN; ARROW; e = expr
+    COLON; functype = typeset; ARROW; e = expr
       {`EFix (func, functype, id, typ, e)}
 
 appl:
@@ -124,6 +125,6 @@ appl:
     { `EAppl (e1, e2) }
 
 typeset:
-  | t1 = typeset; ARROW; t2 = typeset {print_endline "pairing"; TPair (t1, t2) }
-  | T_NUM  { print_endline "It's a num"; TNum }
-  | T_BOOL { print_endline "It's a bool"; TBool }
+  | t1 = typeset; TYPECHAIN; t2 = typeset { TPair (t1, t2) }
+  | T_NUM  { TNum }
+  | T_BOOL { TBool }

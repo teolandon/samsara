@@ -1,1 +1,1 @@
-let factorial = fix f x -> if x < 1 then 1 else x * (f <- (x-1)) in factorial <- 5
+let factorial:num>>num = fix f (x:num) : num -> if x < 1 then 1 else x * (f <- (x-1)) in factorial <- 5
