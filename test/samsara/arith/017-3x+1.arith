@@ -1,7 +1,7 @@
-let iseven:num>>bool = fun (x:num) : bool -> (x % 2) < 1 in
-let func:num>>num>>num =
-  fix f (depth:num) : num>>num ->
-  fun (n:num) : num ->
+let iseven:num->bool = fun (x:num) : bool => (x % 2) < 1 in
+let func:num->num->num =
+  fix f (depth:num) : num->num =>
+  fun (n:num) : num =>
     if n < 2
     then depth
     else

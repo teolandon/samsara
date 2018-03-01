@@ -38,7 +38,7 @@ rule read =
   | float    { FLOAT (float_of_string (Lexing.lexeme lexbuf)) }
   | "<="     { LESS_EQ }
   | ">="     { GREATER_EQ }
-  | ">>"     { TYPECHAIN }
+  | "->"     { TYPECHAIN }
   | "<"      { LESS }
   | ">"      { GREATER }
   | "true"   { BOOL true }
@@ -49,7 +49,7 @@ rule read =
   | "else"   { ELSE }
   | "let"    { LET }
   | "fun"    { FUN }
-  | "->"     { ARROW }
+  | "=>"     { ARROW }
   | "<-"     { APPLY }
   | "fix"    { FIX }
   | "num"    { T_NUM }

@@ -64,8 +64,8 @@ let string_of_token token =
   | Parser.ASSIGN -> "="
   | Parser.ID str -> "id:" ^ str
   | Parser.FUN    -> "fun"
-  | Parser.ARROW  -> "->"
-  | Parser.TYPECHAIN  -> ">>"
+  | Parser.ARROW  -> "=>"
+  | Parser.TYPECHAIN  -> "->"
   | Parser.APPLY  -> "<-"
   | Parser.FIX    -> "fix"
   | Parser.NAN    -> "NaN"
