@@ -58,6 +58,8 @@ rule read =
   | "="      { ASSIGN }
   | "in"     { IN }
   | "unit"   { T_UNIT }
+  | "fst"    { FST }
+  | "snd"    { SND }
   | "()"     { UNIT }
   | '('      { LEFT_PAREN }
   | ')'      { RIGHT_PAREN }

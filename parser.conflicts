@@ -1,0 +1,74 @@
+
+** Conflict (reduce/reduce) in state 98.
+** Tokens involved: STAR PLUS MOD MINUS LESS_EQ LESS GREATER_EQ GREATER DIV APPLY
+** The following explanations concentrate on token STAR.
+** This state is reached from prog after reading:
+
+SND exp 
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+expr EOF 
+exp 
+(?)
+
+** In state 98, looking ahead at STAR, reducing production
+** expr -> exp 
+** is permitted because of the following sub-derivation:
+
+pairs 
+SND exp 
+    number 
+    opr 
+    expr STAR expr // lookahead token appears
+    exp . 
+
+** In state 98, looking ahead at STAR, reducing production
+** pairs -> SND exp 
+** is permitted because of the following sub-derivation:
+
+number 
+opr 
+expr STAR expr // lookahead token appears
+exp // lookahead token is inherited
+pairs // lookahead token is inherited
+SND exp . 
+
+** Conflict (reduce/reduce) in state 74.
+** Tokens involved: STAR PLUS MOD MINUS LESS_EQ LESS GREATER_EQ GREATER DIV APPLY
+** The following explanations concentrate on token STAR.
+** This state is reached from prog after reading:
+
+FST exp 
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+expr EOF 
+exp 
+(?)
+
+** In state 74, looking ahead at STAR, reducing production
+** expr -> exp 
+** is permitted because of the following sub-derivation:
+
+pairs 
+FST exp 
+    number 
+    opr 
+    expr STAR expr // lookahead token appears
+    exp . 
+
+** In state 74, looking ahead at STAR, reducing production
+** pairs -> FST exp 
+** is permitted because of the following sub-derivation:
+
+number 
+opr 
+expr STAR expr // lookahead token appears
+exp // lookahead token is inherited
+pairs // lookahead token is inherited
+FST exp . 

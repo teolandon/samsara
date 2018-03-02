@@ -40,12 +40,15 @@ and expr = [
   | `EId   of string
   | `EAppl of (expr * expr)
   | `EPair of (expr * expr)
+  | `EFst  of expr
+  | `ESnd  of expr
 ]
 
-let is_value (expr:expr) =
+let rec is_value (expr:expr) =
   match expr with
   | `EBool _ | `EInt _ | `EFloat _ | `ENaN | `EUnit
-  | `EPair _ | `EFun _ | `EFix _ -> true
+  | `EFun _ | `EFix _ -> true
+  | `EPair (e1, e2) -> is_value e1 && is_value e2
   | _ -> false
 
 let rec final_type typ =
@@ -178,6 +181,8 @@ let rec string_of_value expr =
       "(" ^ (string_of_value value1) ^ " <- " ^ (string_of_value value2) ^ ")"
   | `EPair (value1, value2) ->
       "(" ^ (string_of_value value1) ^ ", " ^ (string_of_value value2) ^ ")"
+  | `EFst expr -> "fst" ^ (string_of_value expr)
+  | `ESnd expr -> "snd" ^ (string_of_value expr)
 
 let rec subst value str expr =
   let subst expr =
@@ -197,6 +202,8 @@ let rec subst value str expr =
       `EFix (name, functype, id, vartype, subst expr)
   | `EPair  (expr1, expr2) ->
       `EPair (subst expr1, subst expr2)
+  | `EFst expr -> `EFst (subst expr)
+  | `ESnd expr -> `ESnd (subst expr)
   | _ -> expr
 
 let rec step (expr:expr) =
@@ -232,6 +239,22 @@ let rec step (expr:expr) =
       | `EFix (name, functype, id, vartype, expr) as fixed ->
           subst fixed name (subst arg id expr)
       | _ -> raise (Expr_error "LOL")
+      )
+  | `EPair (expr1, expr2) when not (is_value expr1) ->
+      `EPair (step expr1, expr2)
+  | `EPair (expr1, expr2) when not (is_value expr2) ->
+      `EPair (expr1, step expr2)
+  | `EFst expr when not (is_value expr) -> `EFst (step expr)
+  | `EFst expr ->
+      (match expr with
+      | `EPair (expr1, expr2) -> expr1
+      | _                     -> raise generic_type_err
+      )
+  | `ESnd expr when not (is_value expr) -> `ESnd (step expr)
+  | `ESnd expr ->
+      (match expr with
+      | `EPair (expr1, expr2) -> expr2
+      | _                     -> raise generic_type_err
       )
   | value as v -> v
 
@@ -310,3 +333,15 @@ let rec typecheck context expr =
       let t1 = typecheck context expr1 in
       let t2 = typecheck context expr2 in
       TPair (t1, t2)
+  | `EFst expr ->
+      let t = typecheck context expr in
+      (match t with
+      | TPair (t1, t2) -> t1
+      | _              -> raise generic_type_err
+      )
+  | `ESnd expr ->
+      let t = typecheck context expr in
+      (match t with
+      | TPair (t1, t2) -> t2
+      | _              -> raise generic_type_err
+      )

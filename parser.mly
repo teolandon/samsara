@@ -7,6 +7,9 @@
 %token COLON
 %token COMMA
 
+%token FST
+%token SND
+
 %token <int> INT
 %token <float> FLOAT
 %token <bool> BOOL
@@ -61,7 +64,6 @@ prog:
 
 expr:
   | e = exp  { e }
-  | LEFT_PAREN; e1 = exp; COMMA; e2 = exp; RIGHT_PAREN  { `EPair (e1, e2) }
   | LEFT_PAREN; e = exp; RIGHT_PAREN  { e }
 
 exp:
@@ -72,9 +74,15 @@ exp:
   | f = defun   { f }
   | f = fixfun  { f }
   | a = appl    { a }
+  | p = pairs   { p }
   | i = ID      { `EId i }
   | UNIT        { `EUnit }
   ;
+
+pairs:
+  | FST; APPLY; e = expr { `EFst e }
+  | SND; APPLY; e = expr { `ESnd e }
+  | LEFT_PAREN; e1 = expr; COMMA; e2 = expr; RIGHT_PAREN  { `EPair (e1, e2) }
 
 number:
   | i = INT   { `EInt i }

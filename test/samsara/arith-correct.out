@@ -36,3 +36,11 @@ Invalid expression: LOL
 8
 018-unit.arith:
 6
+019-pair.arith:
+(2, 3)
+020-pairs.arith:
+2
+021-pairs.arith:
+3
+022-pairs.arith:
+(true, 5)

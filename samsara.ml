@@ -75,6 +75,8 @@ let string_of_token token =
   | Parser.T_BOOL -> "bool"
   | Parser.COLON  -> ":"
   | Parser.COMMA  -> ","
+  | Parser.FST    -> "fst"
+  | Parser.SND    -> "snd"
 
 let parse_with_error lexbuf =
   try Parser.prog Lexer.read lexbuf with
