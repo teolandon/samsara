@@ -20,7 +20,7 @@ let generic_type_err =
   Type_error "Type mismatch"
 
 type typ =
-  | TBool | TNum | TUnit | TChain of (typ * typ)
+  | TBool | TNum | TUnit | TPair of (typ * typ) | TChain of (typ * typ)
 and opr =
   | EPlus | EMinus | EMult | EDiv | EMod
 and  comp =
@@ -39,12 +39,13 @@ and expr = [
   | `ELet  of (string * typ * expr * expr)
   | `EId   of string
   | `EAppl of (expr * expr)
+  | `EPair of (expr * expr)
 ]
 
 let is_value (expr:expr) =
   match expr with
   | `EBool _ | `EInt _ | `EFloat _ | `ENaN | `EUnit
-  | `EFun _ | `EFix _ -> true
+  | `EPair _ | `EFun _ | `EFix _ -> true
   | _ -> false
 
 let rec final_type typ =
@@ -133,7 +134,9 @@ let rec string_of_type typ =
   | TUnit -> "unit"
   | TBool -> "bool"
   | TNum  -> "num"
-  | TChain (t1, t2)  -> (string_of_type t1) ^ ">>" ^ (string_of_type t2)
+  | TPair  (t1, t2)  ->
+      "(" ^ (string_of_type t1) ^ ", " ^ (string_of_type t2) ^ ")"
+  | TChain (t1, t2)  -> (string_of_type t1) ^ "->" ^ (string_of_type t2)
 
 let rec string_of_value expr =
   match expr with
@@ -164,15 +167,17 @@ let rec string_of_value expr =
               (string_of_value value2)
   | `EId id -> id
   | `EFun  (functype, id, vartype, expr) ->
-      Printf.sprintf "(fun (%s:%s) : %s -> %s)"
+      Printf.sprintf "(fun (%s:%s) : %s => %s)"
                      id (string_of_type vartype) (string_of_type functype)
                      (string_of_value expr)
   | `EFix  (name, functype, id, vartype, expr) ->
-      Printf.sprintf "(fix %s (%s:%s) : %s -> %s)"
+      Printf.sprintf "(fix %s (%s:%s) : %s => %s)"
                      name id (string_of_type vartype) (string_of_type functype)
                      (string_of_value expr)
   | `EAppl (value1, value2) ->
       "(" ^ (string_of_value value1) ^ " <- " ^ (string_of_value value2) ^ ")"
+  | `EPair (value1, value2) ->
+      "(" ^ (string_of_value value1) ^ ", " ^ (string_of_value value2) ^ ")"
 
 let rec subst value str expr =
   let subst expr =
@@ -190,6 +195,8 @@ let rec subst value str expr =
       `EFun (functype, id, vartype, subst expr)
   | `EFix  (name, functype, id, vartype, expr) when id <> str && id <> name ->
       `EFix (name, functype, id, vartype, subst expr)
+  | `EPair  (expr1, expr2) ->
+      `EPair (subst expr1, subst expr2)
   | _ -> expr
 
 let rec step (expr:expr) =
@@ -282,20 +289,24 @@ let rec typecheck context expr =
       else
         raise generic_type_err
   | `EFix  (name, functype, id, vartype, expr) ->
-      let return_type = final_type functype in
       let new_context = add_bind context id vartype in
       let new_context = add_bind new_context name functype in
-      if return_type = (typecheck new_context expr) then
-        functype
+      if functype = (typecheck new_context expr) then
+        TChain (vartype, functype)
       else
         raise generic_type_err
   | `EAppl (expr1, expr2) ->
       let t1 = typecheck context expr1 in
       let t2 = typecheck context expr2 in
-      match t1 with
+      (match t1 with
       | TChain (argtype, ret_type) ->
           if t2 = argtype then
             ret_type
           else
             raise generic_type_err
       | _ -> raise generic_type_err
+      )
+  | `EPair (expr1, expr2) ->
+      let t1 = typecheck context expr1 in
+      let t2 = typecheck context expr2 in
+      TPair (t1, t2)

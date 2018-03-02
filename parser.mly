@@ -5,6 +5,7 @@
 %token T_BOOL
 %token T_UNIT
 %token COLON
+%token COMMA
 
 %token <int> INT
 %token <float> FLOAT
@@ -17,7 +18,7 @@
 
 %token PLUS
 %token MINUS
-%token MULT
+%token STAR
 %token DIV
 %token MOD
 
@@ -47,7 +48,7 @@
 %nonassoc LESS GREATER LESS_EQ GREATER_EQ
 %left MOD
 %left MINUS PLUS
-%left MULT DIV
+%left STAR DIV
 %left APPLY
 
 %start <Expr.expr option> prog
@@ -60,6 +61,7 @@ prog:
 
 expr:
   | e = exp  { e }
+  | LEFT_PAREN; e1 = exp; COMMA; e2 = exp; RIGHT_PAREN  { `EPair (e1, e2) }
   | LEFT_PAREN; e = exp; RIGHT_PAREN  { e }
 
 exp:
@@ -91,7 +93,7 @@ opr:
 %inline operator:
   | PLUS  { EPlus }
   | MINUS { EMinus }
-  | MULT  { EMult }
+  | STAR { EMult }
   | DIV   { EDiv }
   | MOD   { EMod }
 
@@ -131,6 +133,8 @@ appl:
 
 typeset:
   | t1 = typeset; TYPECHAIN; t2 = typeset { TChain (t1, t2) }
+  | LEFT_PAREN; t1 = typeset; STAR; t2 = typeset; RIGHT_PAREN
+    { TPair (t1, t2) }
   | T_NUM  { TNum }
   | T_BOOL { TBool }
   | T_UNIT { TUnit }

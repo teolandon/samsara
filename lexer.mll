@@ -63,9 +63,10 @@ rule read =
   | ')'      { RIGHT_PAREN }
   | '+'      { PLUS }
   | '-'      { MINUS }
-  | '*'      { MULT }
+  | '*'      { STAR }
   | '/'      { DIV }
   | '%'      { MOD }
+  | ','      { COMMA }
   | id       { ID (Lexing.lexeme lexbuf) }
   | _        { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
   | eof      { EOF }

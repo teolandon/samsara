@@ -44,7 +44,7 @@ let string_of_token token =
   | Parser.EOF -> ""
   | Parser.PLUS -> "+"
   | Parser.MINUS -> "-"
-  | Parser.MULT -> "*"
+  | Parser.STAR -> "*"
   | Parser.DIV -> "/"
   | Parser.MOD -> "%"
   | Parser.LEFT_PAREN -> "("
@@ -74,6 +74,7 @@ let string_of_token token =
   | Parser.T_NUM  -> "num"
   | Parser.T_BOOL -> "bool"
   | Parser.COLON  -> ":"
+  | Parser.COMMA  -> ","
 
 let parse_with_error lexbuf =
   try Parser.prog Lexer.read lexbuf with
