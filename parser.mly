@@ -117,6 +117,8 @@ defun:
   | FUN; LEFT_PAREN; id = ID; COLON; typ = typeset; RIGHT_PAREN; COLON;
     functype = typeset; ARROW; e = expr
       {`EFun (functype, id, typ, e)}
+  | FUN; UNIT; COLON; functype = typeset; ARROW; e = expr
+      {`EFun (functype, "", TUnit, e)}
 
 fixfun:
   | FIX; func = ID; LEFT_PAREN; id = ID; COLON; typ = typeset; RIGHT_PAREN;
