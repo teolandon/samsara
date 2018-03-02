@@ -3,7 +3,7 @@
 001-nosense.arith:
 + ( 123 true if ) ( 
 003-a-lot-of-parens.arith:
-( ) ( ) ( ) ( ) ( ) ) ) ) ) 
+() () () () () ) ) ) ) 
 004-floating.arith:
 ( / 123.123 
 005-comps.arith:

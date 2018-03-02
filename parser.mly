@@ -3,12 +3,14 @@
 %}
 %token T_NUM
 %token T_BOOL
+%token T_UNIT
 %token COLON
 
 %token <int> INT
 %token <float> FLOAT
 %token <bool> BOOL
 %token NAN
+%token UNIT
 
 %token LEFT_PAREN
 %token RIGHT_PAREN
@@ -69,6 +71,7 @@ exp:
   | f = fixfun  { f }
   | a = appl    { a }
   | i = ID      { `EId i }
+  | UNIT        { `EUnit }
   ;
 
 number:
@@ -125,6 +128,7 @@ appl:
     { `EAppl (e1, e2) }
 
 typeset:
-  | t1 = typeset; TYPECHAIN; t2 = typeset { TPair (t1, t2) }
+  | t1 = typeset; TYPECHAIN; t2 = typeset { TChain (t1, t2) }
   | T_NUM  { TNum }
   | T_BOOL { TBool }
+  | T_UNIT { TUnit }

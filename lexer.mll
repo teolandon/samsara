@@ -57,7 +57,8 @@ rule read =
   | ":"      { COLON }
   | "="      { ASSIGN }
   | "in"     { IN }
-  | id       { ID (Lexing.lexeme lexbuf) }
+  | "unit"   { T_UNIT }
+  | "()"     { UNIT }
   | '('      { LEFT_PAREN }
   | ')'      { RIGHT_PAREN }
   | '+'      { PLUS }
@@ -65,5 +66,6 @@ rule read =
   | '*'      { MULT }
   | '/'      { DIV }
   | '%'      { MOD }
+  | id       { ID (Lexing.lexeme lexbuf) }
   | _        { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
   | eof      { EOF }

@@ -1,0 +1,1 @@
+let f:unit->num = fun (x:unit) : num => 3 in let x:num = 3 in x + (f <- ())

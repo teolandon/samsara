@@ -20,12 +20,13 @@ let generic_type_err =
   Type_error "Type mismatch"
 
 type typ =
-  | TBool | TNum | TPair of (typ * typ)
+  | TBool | TNum | TUnit | TChain of (typ * typ)
 and opr =
   | EPlus | EMinus | EMult | EDiv | EMod
 and  comp =
   | ELess | EGreater | ELessEq | EGreaterEq
 and expr = [
+  | `EUnit
   | `EBool  of bool
   | `EInt   of int
   | `EFloat of float
@@ -42,13 +43,13 @@ and expr = [
 
 let is_value (expr:expr) =
   match expr with
-  | `EBool _ | `EInt _ | `EFloat _ | `ENaN
+  | `EBool _ | `EInt _ | `EFloat _ | `ENaN | `EUnit
   | `EFun _ | `EFix _ -> true
   | _ -> false
 
 let rec final_type typ =
   match typ with
-  | TPair (_, rest) -> final_type rest
+  | TChain (_, rest) -> final_type rest
   | _               -> typ
 
 type context = (string * typ) list
@@ -129,12 +130,14 @@ let string_of_comp comp =
 
 let rec string_of_type typ =
   match typ with
+  | TUnit -> "unit"
   | TBool -> "bool"
   | TNum  -> "num"
-  | TPair (t1, t2)  -> (string_of_type t1) ^ ">>" ^ (string_of_type t2)
+  | TChain (t1, t2)  -> (string_of_type t1) ^ ">>" ^ (string_of_type t2)
 
 let rec string_of_value expr =
   match expr with
+  | `EUnit -> "()"
   | `EInt a   -> string_of_int a
   | `EFloat f -> string_of_float f
   | `ENaN     -> "NaN"
@@ -240,6 +243,7 @@ let rec evaluate_print_steps value =
 
 let rec typecheck context expr =
   match expr with
+  | `EUnit -> TUnit
   | `EInt _ | `EFloat _ | `ENaN -> TNum
   | `EBool _                  -> TBool
   | `EOpr (opr, expr1, expr2) ->
@@ -274,7 +278,7 @@ let rec typecheck context expr =
   | `EFun (functype, id, vartype, expr) ->
       let new_context = add_bind context id vartype in
       if functype = (typecheck new_context expr) then
-        TPair (vartype, functype)
+        TChain (vartype, functype)
       else
         raise generic_type_err
   | `EFix  (name, functype, id, vartype, expr) ->
@@ -289,7 +293,7 @@ let rec typecheck context expr =
       let t1 = typecheck context expr1 in
       let t2 = typecheck context expr2 in
       match t1 with
-      | TPair (argtype, ret_type) ->
+      | TChain (argtype, ret_type) ->
           if t2 = argtype then
             ret_type
           else

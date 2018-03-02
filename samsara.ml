@@ -49,6 +49,8 @@ let string_of_token token =
   | Parser.MOD -> "%"
   | Parser.LEFT_PAREN -> "("
   | Parser.RIGHT_PAREN -> ")"
+  | Parser.UNIT -> "()"
+  | Parser.T_UNIT -> "unit"
   | Parser.INT i -> string_of_int i
   | Parser.FLOAT f -> string_of_float f
   | Parser.BOOL b  -> string_of_bool b
