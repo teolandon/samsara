@@ -54,6 +54,11 @@ rule read =
   | "fix"    { FIX }
   | "num"    { T_NUM }
   | "bool"   { T_BOOL }
+  | "hd"     { HD }
+  | "tl"     { TL }
+  | "empty"  { EMPTY }
+  | "[]"     { NEW_LIST }
+  | "::"     { CONS }
   | ":"      { COLON }
   | "="      { ASSIGN }
   | "in"     { IN }

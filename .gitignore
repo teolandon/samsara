@@ -26,3 +26,5 @@ setup.log
 # test files
 test/samsara/generated.out
 test/simplecli/generated.out
+
+parser.conflicts

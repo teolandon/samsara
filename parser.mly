@@ -7,6 +7,12 @@
 %token COLON
 %token COMMA
 
+%token HD
+%token TL
+%token CONS
+%token EMPTY
+%token NEW_LIST
+
 %token FST
 %token SND
 
@@ -46,7 +52,7 @@
 
 %token EOF
 
-%right TYPECHAIN
+%right TYPECHAIN CONS
 %nonassoc ELSE IN ARROW
 %nonassoc LESS GREATER LESS_EQ GREATER_EQ
 %left MOD
@@ -75,9 +81,17 @@ exp:
   | f = fixfun  { f }
   | a = appl    { a }
   | p = pairs   { p }
+  | l = lists   { l }
   | i = ID      { `EId i }
   | UNIT        { `EUnit }
   ;
+
+lists:
+  | NEW_LIST; COLON; t = typeset { `ENewList t }
+  | e1 = expr; CONS; e2 = expr   { `ECons (e1, e2) }
+  | HD; APPLY; e = expr          { `EHead e }
+  | TL; APPLY; e = expr          { `ETail e }
+  | EMPTY; APPLY; e = expr       { `EEmpty e }
 
 pairs:
   | FST; APPLY; e = expr { `EFst e }

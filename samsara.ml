@@ -77,6 +77,11 @@ let string_of_token token =
   | Parser.COMMA  -> ","
   | Parser.FST    -> "fst"
   | Parser.SND    -> "snd"
+  | Parser.HD     -> "hd"
+  | Parser.TL     -> "tl"
+  | Parser.CONS   -> "::"
+  | Parser.EMPTY  -> "empty"
+  | Parser.NEW_LIST -> "[]"
 
 let parse_with_error lexbuf =
   try Parser.prog Lexer.read lexbuf with

@@ -20,7 +20,10 @@ let generic_type_err =
   Type_error "Type mismatch"
 
 type typ =
-  | TBool | TNum | TUnit | TPair of (typ * typ) | TChain of (typ * typ)
+  | TBool | TNum | TUnit
+  | TList of typ
+  | TPair of (typ * typ)
+  | TChain of (typ * typ)
 and opr =
   | EPlus | EMinus | EMult | EDiv | EMod
 and  comp =
@@ -42,6 +45,11 @@ and expr = [
   | `EPair of (expr * expr)
   | `EFst  of expr
   | `ESnd  of expr
+  | `ENewList of typ
+  | `ECons of (expr * expr)
+  | `EHead of expr
+  | `ETail of expr
+  | `EEmpty of expr
 ]
 
 let rec is_value (expr:expr) =
@@ -49,6 +57,8 @@ let rec is_value (expr:expr) =
   | `EBool _ | `EInt _ | `EFloat _ | `ENaN | `EUnit
   | `EFun _ | `EFix _ -> true
   | `EPair (e1, e2) -> is_value e1 && is_value e2
+  | `ENewList _ -> true
+  | `ECons  (e1, e2) -> is_value e1 && is_value e2
   | _ -> false
 
 let rec final_type typ =
@@ -140,6 +150,7 @@ let rec string_of_type typ =
   | TPair  (t1, t2)  ->
       "(" ^ (string_of_type t1) ^ ", " ^ (string_of_type t2) ^ ")"
   | TChain (t1, t2)  -> (string_of_type t1) ^ "->" ^ (string_of_type t2)
+  | TList t -> "[" ^ (string_of_type t) ^ "]"
 
 let rec string_of_value expr =
   match expr with
@@ -181,8 +192,14 @@ let rec string_of_value expr =
       "(" ^ (string_of_value value1) ^ " <- " ^ (string_of_value value2) ^ ")"
   | `EPair (value1, value2) ->
       "(" ^ (string_of_value value1) ^ ", " ^ (string_of_value value2) ^ ")"
-  | `EFst expr -> "fst" ^ (string_of_value expr)
-  | `ESnd expr -> "snd" ^ (string_of_value expr)
+  | `EFst expr -> "fst <- " ^ (string_of_value expr)
+  | `ESnd expr -> "snd <- " ^ (string_of_value expr)
+  | `ENewList typ -> "[]" ^ (string_of_type typ)
+  | `ECons (expr1, expr2) ->
+      (string_of_value expr1) ^ "::" ^ (string_of_value expr2)
+  | `EHead expr -> "hd <- " ^ (string_of_value expr)
+  | `ETail expr -> "tl <- " ^ (string_of_value expr)
+  | `EEmpty expr -> "empty <- " ^ (string_of_value expr)
 
 let rec subst value str expr =
   let subst expr =
@@ -208,6 +225,7 @@ let rec subst value str expr =
 
 let rec step (expr:expr) =
   match expr with
+  | value when is_value value -> value
   | `EOpr (opr, expr1, expr2) when not (is_value expr1) ->
       `EOpr (opr, step expr1, expr2)
   | `EOpr (opr, expr1, expr2) when not (is_value expr2) ->
@@ -238,25 +256,43 @@ let rec step (expr:expr) =
       | `EFun (functype, id, vartype, expr) -> subst arg id expr
       | `EFix (name, functype, id, vartype, expr) as fixed ->
           subst fixed name (subst arg id expr)
-      | _ -> raise (Expr_error "LOL")
+      | _ -> raise (Expr_error "Function application needs a function")
       )
   | `EPair (expr1, expr2) when not (is_value expr1) ->
       `EPair (step expr1, expr2)
   | `EPair (expr1, expr2) when not (is_value expr2) ->
       `EPair (expr1, step expr2)
-  | `EFst expr when not (is_value expr) -> `EFst (step expr)
   | `EFst expr ->
       (match expr with
       | `EPair (expr1, expr2) -> expr1
       | _                     -> raise generic_type_err
       )
-  | `ESnd expr when not (is_value expr) -> `ESnd (step expr)
   | `ESnd expr ->
       (match expr with
       | `EPair (expr1, expr2) -> expr2
       | _                     -> raise generic_type_err
       )
-  | value as v -> v
+  | `EHead expr ->
+      (match expr with
+      | `ECons (expr1, expr2) -> expr1
+      | _                  -> raise generic_type_err
+      )
+  | `ETail expr ->
+      (match expr with
+      | `ECons (expr1, expr2) -> expr2
+      | _                  -> raise generic_type_err
+      )
+  | `ECons (expr1, expr2) when not (is_value expr1) ->
+      `ECons (step expr1, expr2)
+  | `ECons (expr1, expr2) when not (is_value expr2) ->
+      `ECons (expr1, step expr2)
+  | `EEmpty expr when not (is_value expr) -> `EEmpty (step expr)
+  | `EEmpty expr ->
+      (match expr with
+      | `ENewList _ -> `EBool true
+      | _           -> `EBool false
+      )
+  | _ -> raise generic_type_err
 
 let rec evaluate_value value =
   match value with
@@ -345,3 +381,24 @@ let rec typecheck context expr =
       | TPair (t1, t2) -> t2
       | _              -> raise generic_type_err
       )
+  | `ENewList typ -> TList typ
+  | `ECons (expr1, expr2) ->
+      (match (typecheck context expr2) with
+      | TList t as list_type ->
+          if (typecheck context expr1) = t then
+            list_type
+          else
+            raise generic_type_err
+      | _ -> raise generic_type_err
+      )
+  | `EHead expr ->
+      (match typecheck context expr with
+      | TList typ -> typ
+      | _         -> raise generic_type_err
+      )
+  | `ETail expr ->
+      (match typecheck context expr with
+      | TList typ as list_type -> list_type
+      | _                      -> raise generic_type_err
+      )
+  | `EEmpty expr -> TBool
