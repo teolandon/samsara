@@ -266,11 +266,13 @@ let rec step (expr:expr) =
       `EPair (step expr1, expr2)
   | `EPair (expr1, expr2) when not (is_value expr2) ->
       `EPair (expr1, step expr2)
+  | `EFst expr when not (is_value expr) -> `EFst (step expr)
   | `EFst expr ->
       (match expr with
       | `EPair (expr1, expr2) -> expr1
       | _                     -> raise generic_type_err
       )
+  | `ESnd expr when not (is_value expr) -> `ESnd (step expr)
   | `ESnd expr ->
       (match expr with
       | `EPair (expr1, expr2) -> expr2
