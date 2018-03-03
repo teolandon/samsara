@@ -58,6 +58,8 @@ rule read =
   | "tl"     { TL }
   | "empty"  { EMPTY }
   | "[]"     { NEW_LIST }
+  | "["      { LEFT_BRACK }
+  | "]"      { RIGHT_BRACK }
   | "::"     { CONS }
   | ":"      { COLON }
   | "="      { ASSIGN }

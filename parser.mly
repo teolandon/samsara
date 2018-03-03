@@ -24,6 +24,8 @@
 
 %token LEFT_PAREN
 %token RIGHT_PAREN
+%token LEFT_BRACK
+%token RIGHT_BRACK
 
 %token PLUS
 %token MINUS
@@ -157,6 +159,7 @@ typeset:
   | t1 = typeset; TYPECHAIN; t2 = typeset { TChain (t1, t2) }
   | LEFT_PAREN; t1 = typeset; STAR; t2 = typeset; RIGHT_PAREN
     { TPair (t1, t2) }
+  | LEFT_BRACK; t = typeset; RIGHT_BRACK { TList t }
   | T_NUM  { TNum }
   | T_BOOL { TBool }
   | T_UNIT { TUnit }

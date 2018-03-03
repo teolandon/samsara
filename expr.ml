@@ -192,14 +192,14 @@ let rec string_of_value expr =
       "(" ^ (string_of_value value1) ^ " <- " ^ (string_of_value value2) ^ ")"
   | `EPair (value1, value2) ->
       "(" ^ (string_of_value value1) ^ ", " ^ (string_of_value value2) ^ ")"
-  | `EFst expr -> "fst <- " ^ (string_of_value expr)
-  | `ESnd expr -> "snd <- " ^ (string_of_value expr)
-  | `ENewList typ -> "[]" ^ (string_of_type typ)
+  | `EFst expr -> "(fst <- " ^ (string_of_value expr) ^ ")"
+  | `ESnd expr -> "(snd <- " ^ (string_of_value expr) ^ ")"
+  | `ENewList typ -> "[]:" ^ (string_of_type typ)
   | `ECons (expr1, expr2) ->
-      (string_of_value expr1) ^ "::" ^ (string_of_value expr2)
-  | `EHead expr -> "hd <- " ^ (string_of_value expr)
-  | `ETail expr -> "tl <- " ^ (string_of_value expr)
-  | `EEmpty expr -> "empty <- " ^ (string_of_value expr)
+      "(" ^ (string_of_value expr1) ^ "::" ^ (string_of_value expr2) ^ ")"
+  | `EHead expr -> "(hd <- " ^ (string_of_value expr) ^ ")"
+  | `ETail expr -> "(tl <- " ^ (string_of_value expr) ^ ")"
+  | `EEmpty expr -> "(empty <- " ^ (string_of_value expr) ^ ")"
 
 let rec subst value str expr =
   let subst expr =
@@ -221,6 +221,10 @@ let rec subst value str expr =
       `EPair (subst expr1, subst expr2)
   | `EFst expr -> `EFst (subst expr)
   | `ESnd expr -> `ESnd (subst expr)
+  | `EHead expr -> `EHead (subst expr)
+  | `ETail expr -> `ETail (subst expr)
+  | `ECons (e1, e2) -> `ECons (subst e1, subst e2)
+  | `EEmpty e -> `EEmpty (subst e)
   | _ -> expr
 
 let rec step (expr:expr) =
@@ -272,11 +276,13 @@ let rec step (expr:expr) =
       | `EPair (expr1, expr2) -> expr2
       | _                     -> raise generic_type_err
       )
+  | `EHead expr when not (is_value expr) -> `EHead (step expr)
   | `EHead expr ->
       (match expr with
       | `ECons (expr1, expr2) -> expr1
       | _                  -> raise generic_type_err
       )
+  | `ETail expr when not (is_value expr) -> `ETail (step expr)
   | `ETail expr ->
       (match expr with
       | `ECons (expr1, expr2) -> expr2
@@ -349,7 +355,9 @@ let rec typecheck context expr =
         raise generic_type_err
   | `EFix  (name, functype, id, vartype, expr) ->
       let new_context = add_bind context id vartype in
-      let new_context = add_bind new_context name functype in
+      let new_context =
+        add_bind new_context name (TChain (vartype, functype))
+      in
       if functype = (typecheck new_context expr) then
         TChain (vartype, functype)
       else

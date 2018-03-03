@@ -44,3 +44,9 @@ Invalid expression: Function application needs a function
 3
 022-pairs.arith:
 (true, 5)
+023-list.arith:
+2
+024-list.arith:
+(3::(4::[]:num))
+025-more-lists.arith:
+(2::(5::(3::(6::(4::(7::[]:num))))))
