@@ -1,5 +1,9 @@
+(* Types of errors, Expr_error is a runtime error,
+ * Type_error is a typecheck error *)
 exception Expr_error of string
 exception Type_error of string
+
+(* Common runtime errors *)
 
 let invalid_opr =
   Expr_error "Invalid operation, only accepts numbers"
@@ -13,11 +17,66 @@ let div_by_zero =
 let modulo_error =
   Expr_error "Modulo operation only accepts integers"
 
+(* Common typecheck errors *)
+
 let if_type_mismatch =
   Type_error "Type mismatch, if accepts booleans as first argument"
 
 let generic_type_err =
   Type_error "Type mismatch"
+
+let pair_type_error func =
+  Type_error (Printf.sprintf
+    "Type mismatch in %s expression: Argument not a pair" func)
+
+let list_type_error func =
+  Type_error (Printf.sprintf
+    "Type mismatch in %s expression: Argument not a list" func)
+
+let opr_type_error opr =
+  Type_error
+    (Printf.sprintf "Operator %s only accepts numbers" opr)
+
+let comp_type_error comp =
+  Type_error
+    (Printf.sprintf "Comparator %s only accepts numbers" comp)
+
+let if_type_mismatch =
+  Type_error
+    "Type mismatch in if expression: The two cases do not have the same type"
+
+let if_not_bool =
+  Type_error
+    "Type mismatch in if expression: Condition is not of boolean type"
+
+let let_type_mismatch =
+  Type_error
+    "Type mismatch in let bind: Label and expressio not of the same type"
+
+let fun_type_mismatch =
+  Type_error
+    ("Type mismatch in function declaration: " ^
+    "Label and expression not of the same type")
+
+let appl_type_mismatch =
+  Type_error
+    ("Type mismatch in function application: " ^
+    "Function does not accept the given type of argument")
+
+let appl_not_func =
+  Type_error
+    ("Type mismatch in function application: " ^
+    "Expression treated as function but not of a function type")
+
+let list_type_mismatch =
+  Type_error
+    ("Type mismatch in cons expression: " ^
+    "Argument and list not of the same type")
+
+let cons_not_list =
+  Type_error
+    ("Type mismatch in cons expression: " ^
+    "Second argument not a list")
 
 type typ =
   | TBool | TNum | TUnit
@@ -270,25 +329,25 @@ let rec step (expr:expr) =
   | `EFst expr ->
       (match expr with
       | `EPair (expr1, expr2) -> expr1
-      | _                     -> raise generic_type_err
+      | _                     -> raise (pair_type_error "fst")
       )
   | `ESnd expr when not (is_value expr) -> `ESnd (step expr)
   | `ESnd expr ->
       (match expr with
       | `EPair (expr1, expr2) -> expr2
-      | _                     -> raise generic_type_err
+      | _                     -> raise (pair_type_error "snd")
       )
   | `EHead expr when not (is_value expr) -> `EHead (step expr)
   | `EHead expr ->
       (match expr with
       | `ECons (expr1, expr2) -> expr1
-      | _                  -> raise generic_type_err
+      | _                  -> raise (list_type_error "hd")
       )
   | `ETail expr when not (is_value expr) -> `ETail (step expr)
   | `ETail expr ->
       (match expr with
       | `ECons (expr1, expr2) -> expr2
-      | _                  -> raise generic_type_err
+      | _                  -> raise (list_type_error "tl")
       )
   | `ECons (expr1, expr2) when not (is_value expr1) ->
       `ECons (step expr1, expr2)
@@ -326,35 +385,38 @@ let rec typecheck context expr =
       if (t1, t2) = (TNum, TNum) then
         TNum
       else
-        raise generic_type_err
+        raise (opr_type_error (string_of_opr opr))
   | `EComp (comp, expr1, expr2) ->
       let t1 = typecheck context expr1 in
       let t2 = typecheck context expr2 in
       if (t1, t2) = (TNum, TNum) then
         TBool
       else
-        raise generic_type_err
+        raise (comp_type_error (string_of_comp comp))
   | `EIf (expr1, expr2, expr3) ->
       let t1 = typecheck context expr1 in
       let t2 = typecheck context expr2 in
       let t3 = typecheck context expr3 in
-      if t1 = TBool && t2 = t3 then
-        t2
+      if t1 = TBool then
+        if t2 = t3 then
+          t2
+        else
+          raise if_type_mismatch
       else
-        raise generic_type_err
+        raise if_not_bool
   | `ELet (id, typ, expr1, expr2) ->
       let new_context = add_bind context id typ in
       if typ = (typecheck context expr1) then
         typecheck new_context expr2
       else
-        raise generic_type_err
+        raise let_type_mismatch
   | `EId id -> get_type context id
   | `EFun (functype, id, vartype, expr) ->
       let new_context = add_bind context id vartype in
       if functype = (typecheck new_context expr) then
         TChain (vartype, functype)
       else
-        raise generic_type_err
+        raise fun_type_mismatch
   | `EFix  (name, functype, id, vartype, expr) ->
       let new_context = add_bind context id vartype in
       let new_context =
@@ -363,7 +425,7 @@ let rec typecheck context expr =
       if functype = (typecheck new_context expr) then
         TChain (vartype, functype)
       else
-        raise generic_type_err
+        raise fun_type_mismatch
   | `EAppl (expr1, expr2) ->
       let t1 = typecheck context expr1 in
       let t2 = typecheck context expr2 in
@@ -372,8 +434,8 @@ let rec typecheck context expr =
           if t2 = argtype then
             ret_type
           else
-            raise generic_type_err
-      | _ -> raise generic_type_err
+            raise appl_type_mismatch
+      | _ -> raise appl_not_func
       )
   | `EPair (expr1, expr2) ->
       let t1 = typecheck context expr1 in
@@ -383,13 +445,13 @@ let rec typecheck context expr =
       let t = typecheck context expr in
       (match t with
       | TPair (t1, t2) -> t1
-      | _              -> raise generic_type_err
+      | _              -> raise (pair_type_error "fst")
       )
   | `ESnd expr ->
       let t = typecheck context expr in
       (match t with
       | TPair (t1, t2) -> t2
-      | _              -> raise generic_type_err
+      | _              -> raise (pair_type_error "snd")
       )
   | `ENewList typ -> TList typ
   | `ECons (expr1, expr2) ->
@@ -398,17 +460,17 @@ let rec typecheck context expr =
           if (typecheck context expr1) = t then
             list_type
           else
-            raise generic_type_err
-      | _ -> raise generic_type_err
+            raise list_type_mismatch
+      | _ -> raise cons_not_list
       )
   | `EHead expr ->
       (match typecheck context expr with
       | TList typ -> typ
-      | _         -> raise generic_type_err
+      | _         -> raise (list_type_error "hd")
       )
   | `ETail expr ->
       (match typecheck context expr with
       | TList typ as list_type -> list_type
-      | _                      -> raise generic_type_err
+      | _                      -> raise (list_type_error "tl")
       )
   | `EEmpty expr -> TBool
