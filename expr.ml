@@ -78,39 +78,48 @@ let cons_not_list =
     ("Type mismatch in cons expression: " ^
     "Second argument not a list")
 
+(* Samsara types *)
 type typ =
   | TBool | TNum | TUnit
-  | TList of typ
-  | TPair of (typ * typ)
-  | TChain of (typ * typ)
-and opr =
+  | TList  of typ         (* List are homogenous *)
+  | TPair  of (typ * typ) (* Pairs of two types  *)
+  | TChain of (typ * typ) (* A TChain (t1, t2) means t1->t2, a function
+                           * that takes type t1 and returns a type t2 *)
+
+(* Helper types for expressions *)
+type opr =
   | EPlus | EMinus | EMult | EDiv | EMod
-and  comp =
+type  comp =
   | ELess | EGreater | ELessEq | EGreaterEq
-and expr = [
+
+(* Samsara Expressions that form an AST *)
+type expr = [
   | `EUnit
   | `EBool  of bool
   | `EInt   of int
   | `EFloat of float
   | `ENaN
-  | `EFun  of (typ * string * typ * expr)
-  | `EFix  of (string * typ * string * typ * expr)
-  | `EOpr  of (opr * expr * expr)
-  | `EComp of (comp * expr * expr)
-  | `EIf   of (expr * expr * expr)
-  | `ELet  of (string * typ * expr * expr)
-  | `EId   of string
-  | `EAppl of (expr * expr)
-  | `EPair of (expr * expr)
-  | `EFst  of expr
-  | `ESnd  of expr
+  | `EFun   of (typ * string * typ * expr)
+  | `EFix   of (string * typ * string * typ * expr)
+  | `EOpr   of (opr * expr * expr)
+  | `EComp  of (comp * expr * expr)
+  | `EIf    of (expr * expr * expr)
+  | `ELet   of (string * typ * expr * expr)
+  | `EId    of string
+  | `EAppl  of (expr * expr)
+  | `EPair  of (expr * expr)
+  | `EFst   of expr
+  | `ESnd   of expr
   | `ENewList of typ
-  | `ECons of (expr * expr)
-  | `EHead of expr
-  | `ETail of expr
+  | `ECons  of (expr * expr)
+  | `EHead  of expr
+  | `ETail  of expr
   | `EEmpty of expr
 ]
 
+(* is_value specifies what expressions are values that
+ * cannot be evaluated into something simpler
+ *)
 let rec is_value (expr:expr) =
   match expr with
   | `EBool _ | `EInt _ | `EFloat _ | `ENaN | `EUnit
@@ -120,16 +129,22 @@ let rec is_value (expr:expr) =
   | `ECons  (e1, e2) -> is_value e1 && is_value e2
   | _ -> false
 
-let rec final_type typ =
-  match typ with
-  | TChain (_, rest) -> final_type rest
-  | _               -> typ
-
+(* Context type that stores an association list for
+ * a typechecking context, meaning bindings of labels
+ * to types
+ *)
 type context = (string * typ) list
 
+(* get_type context id looks up the label id in the
+ * association list context, and returns its type
+ *)
 let get_type context id =
   List.assoc id context
 
+(* add_bind context id typ adds the association pair
+ * (id, typ) in the context given, and replaces id's
+ * previous type association, if it exists
+ *)
 let add_bind (context:context) (id:string) (typ:typ) =
   try
     ignore(get_type context id);
@@ -137,6 +152,8 @@ let add_bind (context:context) (id:string) (typ:typ) =
     (id, typ) :: new_list
   with
     Not_found -> (id, typ) :: context
+
+(* Operators and Comparatos *)
 
 let opr_helper (int_opr:int->int->int) (float_opr:float->float->float) num1 num2 =
   match (num1, num2) with
@@ -260,6 +277,14 @@ let rec string_of_value expr =
   | `ETail expr -> "(tl <- " ^ (string_of_value expr) ^ ")"
   | `EEmpty expr -> "(empty <- " ^ (string_of_value expr) ^ ")"
 
+(* subst value str expr substitutes any instances of the label
+ * str with the value value, in the expression expr recursively
+ * to cover the whole AST of the expression expr.
+ *
+ * If the expression expr is a let bind or a function declaration
+ * that binds the label str, replacement does not advance, to
+ * keep the concept of scopes.
+ *)
 let rec subst value str expr =
   let subst expr =
     subst value str expr
@@ -286,6 +311,10 @@ let rec subst value str expr =
   | `EEmpty e -> `EEmpty (subst e)
   | _ -> expr
 
+(* step expr evaluates the expression expr using small-step semantics.
+ * Any expression expr will be simplified one step. If expr is a value,
+ * then expr is returned as-is.
+ *)
 let rec step (expr:expr) =
   match expr with
   | value when is_value value -> value
@@ -361,11 +390,16 @@ let rec step (expr:expr) =
       )
   | _ -> raise generic_type_err
 
-let rec evaluate_value value =
-  match value with
+(* evaluate_value expr calls step on expr repeatedly until
+ * the result is a value, when it returns the fully evaluated form
+ * of expr.
+ *)
+let rec evaluate_value expr =
+  match expr with
   | value when is_value value -> value
   | some_val -> evaluate_value (step some_val)
 
+(* Same as evaluate_value, but prints out each step. *)
 let rec evaluate_print_steps value =
   match value with
   | value when is_value value -> value
@@ -374,6 +408,9 @@ let rec evaluate_print_steps value =
       print_endline (string_of_value value);
       evaluate_print_steps result
 
+(* typecheck context expr typechecks the expression expr
+ * with the type context context.
+ *)
 let rec typecheck context expr =
   match expr with
   | `EUnit -> TUnit
