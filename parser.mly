@@ -132,8 +132,7 @@ comp:
   | GREATER_EQ { EGreaterEq }
 
 cond:
-  | IF; c = expr; THEN; e1 = expr; ELSE; e2 = expr
-    { `EIf (c, e1, e2) }
+  | IF; c = expr; THEN; e1 = expr; ELSE; e2 = expr { `EIf (c, e1, e2) }
 
 letbind:
   | LET; id = ID; COLON; typ = typeset; ASSIGN; e1 = expr; IN; e2 = expr

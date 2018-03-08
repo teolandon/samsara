@@ -1,5 +1,6 @@
 (* Types of errors, Expr_error is a runtime error,
- * Type_error is a typecheck error *)
+ * Type_error is a typecheck error
+ *)
 exception Expr_error of string
 exception Type_error of string
 
