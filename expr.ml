@@ -280,9 +280,9 @@ let string_of_env env =
     match env with
     | []     -> "]"
     | [(addr, expr)] ->
-        Printf.sprintf "(%i, %s)]" addr (string_of_value expr)
+        Printf.sprintf "(%08x, %s)]" addr (string_of_value expr)
     | (e::es) -> match e with (addr, expr) ->
-        Printf.sprintf "(%i, %s), %s" addr (string_of_value expr) (helper es)
+        Printf.sprintf "(%08x, %s), %s" addr (string_of_value expr) (helper es)
   in
   "[" ^ (helper env)
 
@@ -309,11 +309,13 @@ let malloc env addr expr =
     with
       Not_found -> (addr, expr) :: env
 
-let address_count = ref 0
+let address_count =
+  Random.self_init ();
+  ref (Random.int 173741824)
 
 let get_addr () =
   let ret = !address_count in
-  address_count := ret + 1;
+  address_count := ret + 4;
   ret
 
 (* Context type that stores an association list for
