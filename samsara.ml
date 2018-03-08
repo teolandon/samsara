@@ -88,6 +88,9 @@ let string_of_token token =
   | Parser.REF      -> "ref"
   | Parser.DEREF    -> "!"
   | Parser.ASSIGN_REF -> ":="
+  | Parser.WHILE    -> "while"
+  | Parser.DO       -> "do"
+  | Parser.END      -> "end"
 
 let parse_with_error lexbuf =
   try Parser.prog Lexer.read lexbuf with
@@ -188,9 +191,9 @@ let rec loop_files files func =
       loop_files fs func
 
 let read_stdin func =
-  func {name="stdin";chan=stdin}
+  func {name="stdin"; chan=stdin}
 
-let usageMsg = "Usage: samsara [-lex] [-parse] FILE..."
+let usageMsg = "Usage: samsara.native [-lex] [-parse] [-step] [-stdin] [-type] [FILE...]"
 
 let speclist = [
   ("-lex",   Arg.Set lex_flag, "prints the lexx'd list of tokens");

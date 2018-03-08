@@ -11,6 +11,9 @@
 %token DEREF
 %token ASSIGN_REF
 %token SEQ
+%token WHILE
+%token DO
+%token END
 
 %token HD
 %token TL
@@ -84,6 +87,7 @@ expr:
 
 exp:
   | r = refs    { r }
+  | w = wloop   { w }
   | c = cond    { c }
   | n = number  { n }
   | b = boolean { b }
@@ -96,6 +100,9 @@ exp:
   | i = ID      { EId i }
   | UNIT        { EUnit }
   ;
+
+wloop:
+  | WHILE; e1 = expr; DO; e2 = expr; END { EWhile (e1, e2) }
 
 refs:
   | REF; e = expr   { ERef e }

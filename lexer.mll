@@ -57,6 +57,9 @@ rule read =
   | "hd"     { HD }
   | "tl"     { TL }
   | "empty"  { EMPTY }
+  | "while"  { WHILE }
+  | "do"     { DO }
+  | "end"    { END }
   | "[]"     { NEW_LIST }
   | "["      { LEFT_BRACK }
   | "]"      { RIGHT_BRACK }

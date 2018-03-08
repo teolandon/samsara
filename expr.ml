@@ -121,6 +121,7 @@ type expr =
   | EAssign  of (expr * expr)
   | EDeref   of expr
   | ESeq     of (expr * expr)
+  | EWhile   of (expr * expr)
 
   | EPtr   of int
 
@@ -269,6 +270,9 @@ let rec string_of_value expr =
   | ESeq (e1, e2) ->
       Printf.sprintf "%s; %s" (string_of_value e1) (string_of_value e2)
   | EPtr num -> Printf.sprintf "Ptr(%08x)" num
+  | EWhile (e1, e2) ->
+      Printf.sprintf "while %s do %s end"
+                     (string_of_value e1) (string_of_value e2)
 
 (* Environtment type as an assoc list of pointer
  * addresses, mapping to values.
@@ -378,6 +382,7 @@ let rec subst value str expr =
   | EAssign (e1, e2) -> EAssign (subst e1, subst e2)
   | EDeref e -> EDeref (subst e)
   | ESeq (e1, e2) -> ESeq (subst e1, subst e2)
+  | EWhile (e1, e2) -> EWhile (subst e1, subst e2)
   | _ -> expr
 
 (* step expr evaluates the expression expr using small-step semantics.
@@ -488,6 +493,7 @@ let rec step (env:environment) (expr:expr) =
     | ESeq (expr1, expr2) when not (is_value expr1) ->
         ESeq (step_h expr1, expr2)
     | ESeq (expr1, expr2) -> expr2
+    | EWhile (e1, e2) as wloop -> EIf (e1, ESeq (e2, wloop), EUnit)
     | _ -> raise generic_type_err
   in
   (!env_ref, stepped)
@@ -631,5 +637,10 @@ let rec typecheck context expr =
       | TRef tref -> tref
       | _ -> raise generic_type_err
       )
-  | ESeq (_, expr2) -> typecheck context expr2
+  | ESeq   (_, expr2) -> typecheck context expr2
+  | EWhile (expr1, expr2) ->
+      (match typecheck context expr1 with
+      | TBool -> TUnit
+      | _     -> raise generic_type_err
+      )
   | EPtr _ -> raise generic_type_err
