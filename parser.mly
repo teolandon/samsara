@@ -7,6 +7,11 @@
 %token COLON
 %token COMMA
 
+%token REF
+%token DEREF
+%token ASSIGN_REF
+%token SEQ
+
 %token HD
 %token TL
 %token CONS
@@ -54,13 +59,16 @@
 
 %token EOF
 
-%right TYPECHAIN CONS
-%nonassoc ELSE IN ARROW
+%nonassoc IN
+%right TYPECHAIN CONS SEQ
+%nonassoc REF ASSIGN_REF
+%nonassoc ELSE ARROW
 %nonassoc LESS GREATER LESS_EQ GREATER_EQ
 %left MOD
 %left MINUS PLUS
 %left STAR DIV
 %left APPLY
+%nonassoc DEREF
 
 %start <Expr.expr option> prog
 %%
@@ -75,6 +83,7 @@ expr:
   | LEFT_PAREN; e = exp; RIGHT_PAREN  { e }
 
 exp:
+  | r = refs    { r }
   | c = cond    { c }
   | n = number  { n }
   | b = boolean { b }
@@ -84,35 +93,41 @@ exp:
   | a = appl    { a }
   | p = pairs   { p }
   | l = lists   { l }
-  | i = ID      { `EId i }
-  | UNIT        { `EUnit }
+  | i = ID      { EId i }
+  | UNIT        { EUnit }
   ;
 
+refs:
+  | REF; e = expr   { ERef e }
+  | DEREF; e = expr { EDeref e }
+  | e1 = expr; ASSIGN_REF; e2 = expr { EAssign (e1, e2) }
+  | e1 = expr; SEQ; e2 = expr { ESeq (e1, e2) }
+
 lists:
-  | NEW_LIST; COLON; t = typeset { `ENewList t }
-  | e1 = expr; CONS; e2 = expr   { `ECons (e1, e2) }
-  | HD; APPLY; e = expr          { `EHead e }
-  | TL; APPLY; e = expr          { `ETail e }
-  | EMPTY; APPLY; e = expr       { `EEmpty e }
+  | NEW_LIST; COLON; t = typeset { ENewList t }
+  | e1 = expr; CONS; e2 = expr   { ECons (e1, e2) }
+  | HD; APPLY; e = expr          { EHead e }
+  | TL; APPLY; e = expr          { ETail e }
+  | EMPTY; APPLY; e = expr       { EEmpty e }
 
 pairs:
-  | FST; APPLY; e = expr { `EFst e }
-  | SND; APPLY; e = expr { `ESnd e }
-  | LEFT_PAREN; e1 = expr; COMMA; e2 = expr; RIGHT_PAREN  { `EPair (e1, e2) }
+  | FST; APPLY; e = expr { EFst e }
+  | SND; APPLY; e = expr { ESnd e }
+  | LEFT_PAREN; e1 = expr; COMMA; e2 = expr; RIGHT_PAREN  { EPair (e1, e2) }
 
 number:
-  | i = INT   { `EInt i }
-  | f = FLOAT { `EFloat f }
+  | i = INT   { EInt i }
+  | f = FLOAT { EFloat f }
   | o = opr   { o }
-  | NAN       { `ENaN }
+  | NAN       { ENaN }
 
 boolean:
-  | b = BOOL { `EBool b }
+  | b = BOOL { EBool b }
   | c = comp { c }
 
 opr:
   | a = expr; operation = operator; b = expr;
-    { `EOpr (operation, a, b) }
+    { EOpr (operation, a, b) }
   ;
 %inline operator:
   | PLUS  { EPlus }
@@ -123,7 +138,7 @@ opr:
 
 comp:
   | a = expr; comp = comparison; b = expr
-    { `EComp (comp, a, b) }
+    { EComp (comp, a, b) }
   ;
 %inline comparison:
   | LESS       { ELess }
@@ -132,33 +147,34 @@ comp:
   | GREATER_EQ { EGreaterEq }
 
 cond:
-  | IF; c = expr; THEN; e1 = expr; ELSE; e2 = expr { `EIf (c, e1, e2) }
+  | IF; c = expr; THEN; e1 = expr; ELSE; e2 = expr { EIf (c, e1, e2) }
 
 letbind:
   | LET; id = ID; COLON; typ = typeset; ASSIGN; e1 = expr; IN; e2 = expr
-    { `ELet (id, typ, e1, e2) }
+    { ELet (id, typ, e1, e2) }
 
 defun:
   | FUN; LEFT_PAREN; id = ID; COLON; typ = typeset; RIGHT_PAREN; COLON;
     functype = typeset; ARROW; e = expr
-      {`EFun (functype, id, typ, e)}
+      {EFun (functype, id, typ, e)}
   | FUN; UNIT; COLON; functype = typeset; ARROW; e = expr
-      {`EFun (functype, "", TUnit, e)}
+      {EFun (functype, "", TUnit, e)}
 
 fixfun:
   | FIX; func = ID; LEFT_PAREN; id = ID; COLON; typ = typeset; RIGHT_PAREN;
     COLON; functype = typeset; ARROW; e = expr
-      {`EFix (func, functype, id, typ, e)}
+      {EFix (func, functype, id, typ, e)}
 
 appl:
   | e1 = expr; APPLY; e2 = expr
-    { `EAppl (e1, e2) }
+    { EAppl (e1, e2) }
 
 typeset:
   | t1 = typeset; TYPECHAIN; t2 = typeset { TChain (t1, t2) }
   | LEFT_PAREN; t1 = typeset; STAR; t2 = typeset; RIGHT_PAREN
     { TPair (t1, t2) }
   | LEFT_BRACK; t = typeset; RIGHT_BRACK { TList t }
+  | LESS; t = typeset; GREATER { TRef t }
   | T_NUM  { TNum }
   | T_BOOL { TBool }
   | T_UNIT { TUnit }

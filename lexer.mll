@@ -61,6 +61,10 @@ rule read =
   | "["      { LEFT_BRACK }
   | "]"      { RIGHT_BRACK }
   | "::"     { CONS }
+  | ":="     { ASSIGN_REF }
+  | ";"      { SEQ }
+  | "ref"    { REF }
+  | "!"      { DEREF }
   | ":"      { COLON }
   | "="      { ASSIGN }
   | "in"     { IN }

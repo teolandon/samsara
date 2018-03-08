@@ -84,6 +84,10 @@ let string_of_token token =
   | Parser.CONS   -> "::"
   | Parser.EMPTY  -> "empty"
   | Parser.NEW_LIST -> "[]"
+  | Parser.SEQ      -> ";"
+  | Parser.REF      -> "ref"
+  | Parser.DEREF    -> "!"
+  | Parser.ASSIGN_REF -> ":="
 
 let parse_with_error lexbuf =
   try Parser.prog Lexer.read lexbuf with
@@ -92,7 +96,7 @@ let parse_with_error lexbuf =
 let evaluated lexbuf =
   try
     match parse_with_error lexbuf with
-    | Some expr -> Expr.string_of_value (Expr.evaluate_value expr);
+    | Some expr -> Expr.string_of_value (snd (Expr.evaluate_value [] expr));
     | None -> ""
   with
     | _ as err -> str_of_error err lexbuf
@@ -116,7 +120,8 @@ let non_evaluated lexbuf =
 let step_and_print lexbuf =
   try
     match parse_with_error lexbuf with
-    | Some expr -> Expr.string_of_value (Expr.evaluate_print_steps expr);
+    | Some expr ->
+        Expr.string_of_value (snd (Expr.evaluate_print_steps [] expr));
     | None      -> ""
   with
     | _ as err -> str_of_error err lexbuf
