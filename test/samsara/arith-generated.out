@@ -50,3 +50,13 @@ Invalid expression: Function application needs a function
 (3::(4::[]:num))
 025-more-lists.arith:
 (2::(5::(3::(6::(4::(7::[]:num))))))
+026-ref-cells.arith:
+4
+027-ref-cells.arith:
+4
+028-ref-cells.arith:
+7
+029-ref-cells.arith:
+(10, 12)
+030-while-cells.arith:
+(1::(2::(3::(4::(5::[]:num)))))
