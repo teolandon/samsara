@@ -130,6 +130,10 @@ Where:
     the array `arr`'s index `i`. Once again, the type of `e2` has to be the same
     as the underlying type of the array `arr`.
 * `length <- e` returns the capacity of an array `e`.
+* `while e1 do e2 end` evaluates the expression `e2` repeatedly until the boolean
+  expression `e1` is `false`, at which point it evaluates to the unit value,
+  `()`. Under the hood, it unrolls to the expression `if e1 then e2; while e1
+  do e2 end else ()`.
 
 Some operations have margin for errors and type mismatches. These are usually
 raised with an error message describing the error, but not its location, because
