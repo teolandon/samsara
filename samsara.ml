@@ -93,6 +93,7 @@ let string_of_token token =
   | Parser.END      -> "end"
   | Parser.NEW      -> "new"
   | Parser.ARRAY    -> "array"
+  | Parser.LENGTH   -> "length"
 
 let parse_with_error lexbuf =
   try Parser.prog Lexer.read lexbuf with

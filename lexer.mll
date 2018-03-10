@@ -62,6 +62,7 @@ rule read =
   | "end"    { END }
   | "new"    { NEW }
   | "array"  { ARRAY }
+  | "length" { LENGTH }
   | "[]"     { NEW_LIST }
   | "["      { LEFT_BRACK }
   | "]"      { RIGHT_BRACK }

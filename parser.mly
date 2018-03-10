@@ -17,6 +17,7 @@
 
 %token NEW
 %token ARRAY
+%token LENGTH
 
 %token HD
 %token TL
@@ -118,6 +119,7 @@ refs:
 arrays:
   | NEW; t = typeset; LEFT_BRACK; e = expr; RIGHT_BRACK; { ENewArray (t, e) }
   | e1 = expr; LEFT_BRACK; e2 = expr; RIGHT_BRACK; { EArrayRef (e1, e2) }
+  | LENGTH; APPLY; e = expr { ELength e }
 
 lists:
   | NEW_LIST; COLON; t = typeset { ENewList t }
