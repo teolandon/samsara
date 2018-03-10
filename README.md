@@ -35,17 +35,20 @@ The syntax is described by the following context free grammar:
            | x | e <- e | let x:t = e in e
            | (e, e) | fst <- e | snd <- e
            | []:t | e :: e | hd <- e | tl <- e | empty <- e
+           | ref e | !e | e := e | e; e
+           | while e do e end
+           | new t[e] | e[e] | length <- e
            | ()
     n  ::= (n) | n | f | NaN | n + n | n - n
            | n * n | n / n | n % n
     bool ::= (bool) | true | false | n < n | n <= n | n > n
            | n >= n
 
-    t    ::= num | bool | unit | [t] | (t, t) | t->t
+    t    ::= num | bool | unit | [t] | (t, t) | t->t | <t> | array<t>
 
 Where:
 
-* Parentheses are optional.
+* Parentheses are optional, required only for non-standard grouping of expressions.
 * `()` is the unit value.
 * `n` is a positive integer literal, such as `1` or `912`
 * `f` is a positive floating point literal, such as `1.1234` or `0.12312`
@@ -68,6 +71,9 @@ Where:
     type `t1` and return an element of type `t2`. This can be chained
     right-associatively, to construct the types for functions that take multiple
     arguments, `t1 -> t2 -> t3 -> ...`.
+  * `<t>` denotes a reference to a value of type `t`. Similar to a C pointer of type
+    `*t`.
+  * `array<t>` denotes an array of values of type `t`.
 * The `if` expression evaluates the boolean argument and if it evaluates to
   `true`, then the `if` expression evaluates to the second `e` expression that
   is given to it, and if the boolean evaluates to `false`, then the `if`
@@ -109,6 +115,21 @@ Where:
 * `hd <- e` returns the head element of the list `e`, while `tl <- e` provides
   the rest of the elements as a list.
 * `empty <- e` returns `true` if the list `e` is empty, and `false` if it is not.
+* `ref e` allocates an expression `e` to the current program memory. Under the hood
+  this evaluates to a pointer. Really good to use in let-bindings
+* `!e` dereferences a pointer, revealing its underlying value.
+* `e1; e2` evaluates the expression `e1`, along with any of its side effects, disregards
+  its result, and then evaluates expression `e2`. Right-associative (although I think it
+  works both ways).
+* `new t[e]` allocates a new array of length `e` (provided that `e` is an integer,
+  for values of type `t`.
+* `e1[e2]` accesses the array `e1` at the index `e2`.
+* `e1 := e2` assigns the second expression `e2` to the pointer `e1`. The expression
+  `e2` has to be of the same type as the underlying value of the pointer `e1`.
+  * `e1` can also be an array index `arr[i]`, in which case `e2` is assigned to
+    the array `arr`'s index `i`. Once again, the type of `e2` has to be the same
+    as the underlying type of the array `arr`.
+* `length <- e` returns the capacity of an array `e`.
 
 Some operations have margin for errors and type mismatches. These are usually
 raised with an error message describing the error, but not its location, because
@@ -210,18 +231,29 @@ testing and keep commits clean and correct. Refer to the HOOKS.md file in the
 
 # Changelog
 
-## Assignment 04 - 2018-02-23
+## Assignment 06 - 2018-03-09
+
+### Added
+* Reference cells.
+* Arrays.
+* `while` loops.
+* Tests for reference cells, while loops, arrays.
+
+### Known bugs
+* Insufficient and inaccurate error reporting.
+
+## Assignment 05 - 2018-03-02 (Fixed from last submission)
 
 ### Added
 * Typechecking!
   * A very flexible `num` type, and a `bool` type.
   * Other functional language types such as `unit`, pairs, and lists.
   * In-built functions for manipulating such types such as `hd` and `fst`.
-* Tests for types, pairs, lists
+* Tests for types, pairs, lists.
 
 ### Known bugs
 * Insufficient and inaccurate error reporting.
-* No documentation in code (coming soon, gotta bugfix the developer first)
+* No documentation in code (coming soon, gotta bugfix the developer first).
 
 ## Assignment 04 - 2018-02-23
 
@@ -259,10 +291,10 @@ testing and keep commits clean and correct. Refer to the HOOKS.md file in the
 * Makefile target for `samsara`.
 
 ### Changed
-* Tests for simplecli moved to  `test/simplecli/`
+* Tests for simplecli moved to  `test/simplecli/`.
 
 ### Known bugs
-* None
+* None.
 
 ## Assignment 01 - 2018-01-30
 
@@ -272,7 +304,7 @@ testing and keep commits clean and correct. Refer to the HOOKS.md file in the
 * Makefile with targets for `make`, `clean` and `test`.
 
 ### Changed
-* None
+* None.
 
 ### Known bugs
-* None
+* None.
