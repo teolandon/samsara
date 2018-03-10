@@ -60,6 +60,8 @@ rule read =
   | "while"  { WHILE }
   | "do"     { DO }
   | "end"    { END }
+  | "new"    { NEW }
+  | "array"  { ARRAY }
   | "[]"     { NEW_LIST }
   | "["      { LEFT_BRACK }
   | "]"      { RIGHT_BRACK }

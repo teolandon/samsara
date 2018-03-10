@@ -60,3 +60,5 @@ Invalid expression: Function application needs a function
 (10, 12)
 030-while-cells.arith:
 (1::(2::(3::(4::(5::[]:num)))))
+031-arrays.arith:
+3

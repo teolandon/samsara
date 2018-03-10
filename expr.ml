@@ -83,6 +83,7 @@ let cons_not_list =
 type typ =
   | TBool | TNum | TUnit
   | TRef   of typ         (* Reference to a variable *)
+  | TArray of typ         (* Reference to a C-like array *)
   | TList  of typ         (* List are homogenous *)
   | TPair  of (typ * typ) (* Pairs of two types  *)
   | TChain of (typ * typ) (* A TChain (t1, t2) means t1->t2, a function
@@ -122,8 +123,12 @@ type expr =
   | EDeref   of expr
   | ESeq     of (expr * expr)
   | EWhile   of (expr * expr)
+  | ENewArray of (typ  * expr)
+  | EArrayRef of (expr * expr)
+  | ELength   of expr
 
-  | EPtr   of int
+  | EPtr      of int
+  | EArrayPtr of (typ * int * int)
 
 
 (* is_value specifies what expressions are values that
@@ -133,7 +138,7 @@ let rec is_value (expr:expr) =
   match expr with
   | EBool _ | EInt _ | EFloat _ | ENaN | EUnit
   | EFun _ | EFix _
-  | EPtr _ -> true
+  | EPtr _ | EArrayPtr _ -> true
   | EPair (e1, e2) -> is_value e1 && is_value e2
   | ENewList _ -> true
   | ECons  (e1, e2) -> is_value e1 && is_value e2
@@ -209,7 +214,8 @@ let rec string_of_type typ =
   | TUnit -> "unit"
   | TBool -> "bool"
   | TNum  -> "num"
-  | TRef t -> Printf.sprintf "<%s>" (string_of_type t)
+  | TRef t   -> Printf.sprintf "<%s>" (string_of_type t)
+  | TArray t -> Printf.sprintf "array<%s>" (string_of_type t)
   | TPair  (t1, t2)  ->
       "(" ^ (string_of_type t1) ^ ", " ^ (string_of_type t2) ^ ")"
   | TChain (t1, t2)  -> (string_of_type t1) ^ "->" ^ (string_of_type t2)
@@ -269,10 +275,18 @@ let rec string_of_value expr =
   | EDeref expr -> Printf.sprintf "!%s" (string_of_value expr)
   | ESeq (e1, e2) ->
       Printf.sprintf "%s; %s" (string_of_value e1) (string_of_value e2)
+  | ENewArray (typ, cap) ->
+      Printf.sprintf "new %s[%s]" (string_of_type typ) (string_of_value cap)
+  | EArrayRef (arr, index) ->
+      Printf.sprintf "%s[%s]" (string_of_value arr) (string_of_value index)
   | EPtr num -> Printf.sprintf "Ptr(%08x)" num
+  | EArrayPtr (t, addr, cap) ->
+      Printf.sprintf "Arr(%08x - %08x)" addr (addr+cap)
   | EWhile (e1, e2) ->
       Printf.sprintf "while %s do %s end"
                      (string_of_value e1) (string_of_value e2)
+  | ELength e ->
+      Printf.sprintf "length <- %s" (string_of_value e)
 
 (* Environtment type as an assoc list of pointer
  * addresses, mapping to values.
@@ -296,13 +310,16 @@ let string_of_env env =
 let get_val env addr =
   List.assoc addr env
 
-(* malloc env addr expr adds the association pair
- * (addr, expr) in the environment given, and replaces addr's
- * previous expression association, if it exists.
- *
- * The expression expr given has to be a value.
- *)
-let malloc env addr expr =
+let address_count =
+  Random.self_init ();
+  ref (Random.int 173741824)
+
+let get_addr () =
+  let ret = !address_count in
+  address_count := ret + 1;
+  ret
+
+let assign env addr expr =
   if not (is_value expr) then
     raise (Expr_error "Cannot store reference to non-value. Check compiler")
   else
@@ -313,14 +330,24 @@ let malloc env addr expr =
     with
       Not_found -> (addr, expr) :: env
 
-let address_count =
-  Random.self_init ();
-  ref (Random.int 173741824)
+(* malloc env addr expr adds the association pair
+ * (addr, expr) in the environment given, and replaces addr's
+ * previous expression association, if it exists.
+ *
+ * The expression expr given has to be a value.
+ *)
+let malloc env expr =
+  if not (is_value expr) then
+    raise (Expr_error "Cannot store reference to non-value. Check compiler")
+  else
+    let addr = get_addr () in
+    let new_env = assign env addr expr in
+    (new_env, EPtr addr)
 
-let get_addr () =
-  let ret = !address_count in
-  address_count := ret + 4;
-  ret
+let malloc_array cap typ =
+  let addr = !address_count in
+  address_count := addr + cap;
+  EArrayPtr (typ, addr, cap)
 
 (* Context type that stores an association list for
  * a typechecking context, meaning bindings of labels
@@ -382,7 +409,10 @@ let rec subst value str expr =
   | EAssign (e1, e2) -> EAssign (subst e1, subst e2)
   | EDeref e -> EDeref (subst e)
   | ESeq (e1, e2) -> ESeq (subst e1, subst e2)
+  | ENewArray (typ, cap) -> ENewArray (typ, subst cap)
+  | EArrayRef (arr, index) -> EArrayRef (subst arr, subst index)
   | EWhile (e1, e2) -> EWhile (subst e1, subst e2)
+  | ELength e -> ELength (subst e)
   | _ -> expr
 
 (* step expr evaluates the expression expr using small-step semantics.
@@ -474,14 +504,22 @@ let rec step (env:environment) (expr:expr) =
     | ERef expr when not (is_value expr) ->
         ERef (step_h expr)
     | ERef expr ->
-        let addr = get_addr () in
-        env_ref := malloc !env_ref addr expr; EPtr addr
-    | EAssign (ref, expr) when not (is_value expr) ->
-        EAssign (ref, step_h expr)
+        let (new_env, ptr) = malloc !env_ref expr in
+        env_ref := new_env; ptr
     | EAssign (ref, expr) ->
-        (match ref with
-        | EPtr addr -> env_ref := malloc !env_ref addr expr; EUnit
-        | ref_expr when not (is_value ref_expr) -> EAssign (step_h ref, expr)
+        (match (ref, expr) with
+        | (r, e) when not (is_value e) -> EAssign (r, step_h e)
+        | (EArrayRef (arr, addr), _) when not (is_value arr) ->
+          EAssign (EArrayRef (step_h arr, addr), expr)
+        | (EArrayRef (arr, addr), _) when not (is_value addr) ->
+          EAssign (EArrayRef (arr, step_h addr), expr)
+        | (EArrayRef (EArrayPtr (_, addr, cap), EInt i), e) ->
+            if i < cap then
+              (env_ref := assign !env_ref (addr + i) expr; EUnit)
+            else
+              raise (Expr_error "Array index out of bounds")
+        | (EPtr addr, _) -> env_ref := assign !env_ref addr expr; EUnit
+        | (r, e) when not (is_value r) -> EAssign (step_h ref, expr)
         | _ -> raise generic_type_err
         )
     | EDeref ptr ->
@@ -493,7 +531,35 @@ let rec step (env:environment) (expr:expr) =
     | ESeq (expr1, expr2) when not (is_value expr1) ->
         ESeq (step_h expr1, expr2)
     | ESeq (expr1, expr2) -> expr2
-    | EWhile (e1, e2) as wloop -> EIf (e1, ESeq (e2, wloop), EUnit)
+    | ENewArray (typ, cap) when not (is_value cap) ->
+        ENewArray (typ, step_h cap)
+    | ENewArray (typ, cap) ->
+        (match cap with
+        | EInt i -> malloc_array i typ
+        | _      -> raise generic_type_err
+        )
+    | EArrayRef (arr, index) when not (is_value arr) ->
+        EArrayRef (step_h arr, index)
+    | EArrayRef (arr, index) when not (is_value index) ->
+        EArrayRef (arr, step_h index)
+    | EArrayRef (arr, index) ->
+        (match (arr, index) with
+        | (EArrayPtr (_, addr, cap), EInt i) ->
+            if i < cap then
+              try get_val !env_ref (addr + i) with
+              Not_found -> raise (Expr_error "Array value not initialized")
+            else
+              raise generic_type_err
+        | (EArrayPtr _, _)              -> raise generic_type_err
+        | _                             -> raise generic_type_err
+        )
+    | EWhile  (e1, e2) as wloop -> EIf (e1, ESeq (e2, wloop), EUnit)
+    | ELength e ->
+        (match e with
+        | exp when not (is_value exp) -> ELength (step_h e)
+        | EArrayPtr (_, _, cap) -> EInt cap
+        | _ -> raise generic_type_err
+        )
     | _ -> raise generic_type_err
   in
   (!env_ref, stepped)
@@ -643,4 +709,20 @@ let rec typecheck context expr =
       | TBool -> TUnit
       | _     -> raise generic_type_err
       )
-  | EPtr _ -> raise generic_type_err
+  | ENewArray (typ, cap) ->
+      if (typecheck context cap) = TNum then
+        TArray typ
+      else
+        raise generic_type_err
+  | EArrayRef (arr, index) ->
+      (match (arr, index) with
+      | (EArrayPtr (typ, _, _), EInt _) -> typ
+      | (EArrayPtr _, _) -> raise generic_type_err
+      | _                -> raise generic_type_err
+      )
+  | ELength arr ->
+      (match typecheck context arr with
+      | TArray _ -> TNum
+      | _        -> raise generic_type_err
+      )
+  | EArrayPtr _ | EPtr _ -> raise generic_type_err

@@ -91,6 +91,8 @@ let string_of_token token =
   | Parser.WHILE    -> "while"
   | Parser.DO       -> "do"
   | Parser.END      -> "end"
+  | Parser.NEW      -> "new"
+  | Parser.ARRAY    -> "array"
 
 let parse_with_error lexbuf =
   try Parser.prog Lexer.read lexbuf with

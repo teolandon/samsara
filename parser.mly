@@ -15,6 +15,9 @@
 %token DO
 %token END
 
+%token NEW
+%token ARRAY
+
 %token HD
 %token TL
 %token CONS
@@ -72,7 +75,7 @@
 %left MINUS PLUS
 %left STAR DIV
 %left APPLY
-%nonassoc DEREF
+%nonassoc DEREF LEFT_BRACK
 
 %start <Expr.expr option> prog
 %%
@@ -88,6 +91,7 @@ expr:
 
 exp:
   | r = refs    { r }
+  | a = arrays  { a }
   | w = wloop   { w }
   | c = cond    { c }
   | n = number  { n }
@@ -110,6 +114,10 @@ refs:
   | DEREF; e = expr { EDeref e }
   | e1 = expr; ASSIGN_REF; e2 = expr { EAssign (e1, e2) }
   | e1 = expr; SEQ; e2 = expr { ESeq (e1, e2) }
+
+arrays:
+  | NEW; t = typeset; LEFT_BRACK; e = expr; RIGHT_BRACK; { ENewArray (t, e) }
+  | e1 = expr; LEFT_BRACK; e2 = expr; RIGHT_BRACK; { EArrayRef (e1, e2) }
 
 lists:
   | NEW_LIST; COLON; t = typeset { ENewList t }
@@ -182,6 +190,7 @@ typeset:
   | LEFT_PAREN; t1 = typeset; STAR; t2 = typeset; RIGHT_PAREN
     { TPair (t1, t2) }
   | LEFT_BRACK; t = typeset; RIGHT_BRACK { TList t }
+  | ARRAY; LESS; t = typeset; GREATER { TArray t }
   | LESS; t = typeset; GREATER { TRef t }
   | T_NUM  { TNum }
   | T_BOOL { TBool }
