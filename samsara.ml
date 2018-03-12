@@ -34,7 +34,7 @@ let str_of_error error lexbuf =
     | _ -> "Unknown error occured"
 
 let failWith error lexbuf =
-  printf "%s" (str_of_error error lexbuf)
+  printf "%s\n" (str_of_error error lexbuf)
 
 let string_of_token token =
   match token with
@@ -215,7 +215,7 @@ let speclist = [
 
 let repl_loop () =
   let set_prompt () = Ledit.set_prompt "$ " in
-  let unset_prompt () = Ledit.set_prompt "> " in
+  let unset_prompt () = Ledit.set_prompt "  " in
   set_prompt ();
   let buf = Buffer.create 256 in
   let input () =
@@ -259,13 +259,12 @@ let repl () =
     while not !quit_loop do
       let str = repl_loop () in
       match str with
-      | "exit" -> quit_loop := true
+      | "exit;;" | "exit\n;;" -> quit_loop := true
       | ""     -> ()
       | _      ->
         let lexbuf = Lexing.from_string str in
         let (typ, value) = (type_and_evaluated lexbuf) in
-        printf "t: %s\n" typ;
-        printf "%s\n" value;
+        printf "t: %s = %s\n" typ value;
         print_endline "" (* Flush the buffer *)
     done
   with End_of_file -> print_newline ()
