@@ -45,7 +45,7 @@ install:
 	-cp ledit.1 $(MANDIR)/ledit.1
 
 install-lib: META
-	ocamlfind install ledit ledit.cma ledit.cmi cursor.cmi cursor.cmx ledit.cmx ledit.cmxa META
+	ocamlfind install ledit ledit.cma ledit.cmi cursor.cmi cursor.cmx ledit.cmx ledit.cmxa ledit.a META
 
 META: META.tpl
 	VERSION=`sed -n -e 's/^.* version = "\(.*\)".*$$/\1/p' go.ml`; \
