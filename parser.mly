@@ -1,6 +1,8 @@
 %{
   open Expr
 %}
+%token STOP
+
 %token T_NUM
 %token T_BOOL
 %token T_UNIT
@@ -83,11 +85,11 @@
 
 prog:
   | EOF { None }
-  | e = expr EOF { Some e }
+  | e = expr STOP? EOF { Some e }
   ;
 
 expr:
-  | e = exp  { e }
+  | e = exp       { e }
   | LEFT_PAREN; e = exp; RIGHT_PAREN  { e }
 
 exp:

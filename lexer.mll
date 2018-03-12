@@ -68,6 +68,7 @@ rule read =
   | "]"      { RIGHT_BRACK }
   | "::"     { CONS }
   | ":="     { ASSIGN_REF }
+  | ";;"     { STOP }
   | ";"      { SEQ }
   | "ref"    { REF }
   | "!"      { DEREF }

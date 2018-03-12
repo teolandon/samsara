@@ -1,8 +1,10 @@
 open Printf
-open Lexer
 open Lexing
 
+exception Trailing_chars
+
 let stdin_flag = ref false
+let repl_flag  = ref false
 let lex_flag   = ref false
 let parse_flag = ref false
 let step_flag  = ref false
@@ -21,23 +23,18 @@ let position_str lexbuf =
 
 let str_of_error error lexbuf =
   match error with
-    | SyntaxError msg ->
+    | Lexer.SyntaxError msg ->
         sprintf "Lexing Error: %s: %s" (position_str lexbuf) msg
     | Parser.Error ->
         sprintf "Syntax error %s: parser error" (position_str lexbuf)
     | Expr.Expr_error str ->
         sprintf "Invalid expression: %s" str
+    | Expr.Type_error str ->
+        sprintf "Type error: %s" str
     | _ -> "Unknown error occured"
 
 let failWith error lexbuf =
-  match error with
-    | SyntaxError msg ->
-        printf "Lexing Error: %s: %s" (position_str lexbuf) msg
-    | Parser.Error ->
-        printf "Syntax error %s: parser error" (position_str lexbuf)
-    | Expr.Expr_error str ->
-        printf "Invalid expression: %s" str
-    | _ -> printf "Unknown error occured"
+  printf "%s" (str_of_error error lexbuf)
 
 let string_of_token token =
   match token with
@@ -94,15 +91,29 @@ let string_of_token token =
   | Parser.NEW      -> "new"
   | Parser.ARRAY    -> "array"
   | Parser.LENGTH   -> "length"
+  | Parser.STOP     -> ";;"
 
 let parse_with_error lexbuf =
   try Parser.prog Lexer.read lexbuf with
     | _ as err -> failWith err lexbuf; None
 
+let type_and_evaluated lexbuf =
+  try
+    match parse_with_error lexbuf with
+    | Some expr ->
+        ignore(Expr.typecheck [] expr);
+        let (typ, (_, value)) = Expr.evaluate_value [] expr in
+        (Expr.string_of_type typ, Expr.string_of_value value)
+    | None -> ("", "")
+  with
+    | _ as err -> ("error", str_of_error err lexbuf)
+
 let evaluated lexbuf =
   try
     match parse_with_error lexbuf with
-    | Some expr -> Expr.string_of_value (snd (Expr.evaluate_value [] expr));
+    | Some expr ->
+        ignore(Expr.typecheck [] expr);
+        Expr.string_of_value (snd (snd (Expr.evaluate_value [] expr)));
     | None -> ""
   with
     | _ as err -> str_of_error err lexbuf
@@ -150,12 +161,7 @@ let lexxd_str lexbuf =
   try
     lex_string lexbuf
   with
-  | SyntaxError msg ->
-      sprintf "Lexing error %s: %s" (position_str lexbuf) msg
-  | Parser.Error ->
-      sprintf "Syntax error %s: parser error" (position_str lexbuf)
-  | Expr.Expr_error str ->
-      sprintf "Invalid expression: %s" str
+  | error -> str_of_error error lexbuf
 
 type named_chan = {
   name : string;
@@ -207,13 +213,71 @@ let speclist = [
   ("--help", Arg.Unit (fun () -> ()), ""); (* Supresses flag *)
 ]
 
+let repl_loop () =
+  let set_prompt () = Ledit.set_prompt "$ " in
+  let unset_prompt () = Ledit.set_prompt "> " in
+  set_prompt ();
+  let buf = Buffer.create 256 in
+  let input () =
+    Ledit.input_char stdin
+  in
+  let flush () =
+    while not (Ledit.input_char stdin = "\n") do () done
+  in
+  let rec exit_loop c =
+    match c with
+    | ";" ->
+        Buffer.add_string buf c;
+        flush ();
+        set_prompt ();
+        Some (Buffer.contents buf)
+    | _   ->
+        Buffer.add_string buf c;
+        None
+  in
+  let rec main_loop c =
+    match c with
+    | ";" ->
+        Buffer.add_string buf c;
+        (match exit_loop (input ()) with
+        | None   -> main_loop (input ())
+        | Some s -> s
+        )
+    | "\n" ->
+        Buffer.add_string buf c;
+        unset_prompt ();
+        main_loop (input ())
+    | _    ->
+        Buffer.add_string buf c;
+        main_loop (input ())
+  in
+  main_loop (Ledit.input_char stdin)
+
+let repl () =
+  let quit_loop = ref false in
+  try
+    while not !quit_loop do
+      let str = repl_loop () in
+      match str with
+      | "exit" -> quit_loop := true
+      | ""     -> ()
+      | _      ->
+        let lexbuf = Lexing.from_string str in
+        let (typ, value) = (type_and_evaluated lexbuf) in
+        printf "t: %s\n" typ;
+        printf "%s\n" value;
+        print_endline "" (* Flush the buffer *)
+    done
+  with End_of_file -> print_newline ()
+
 let main () =
   Arg.parse speclist addFile usageMsg;
   let files = (List.rev !files) in
   let read_function =
-    match (!stdin_flag, files) with
-    | (true, _) | (_, []) -> read_stdin
-    | _                   -> loop_files files
+    match (!repl_flag, !stdin_flag, files) with
+    | (true, _, _) | (_, false, []) -> (fun _ -> repl ())
+    | (_, true, _)                  -> read_stdin
+    | _                             -> loop_files files
   in
   match (!lex_flag, !parse_flag, !step_flag, !type_flag) with
   | (_, _, _, true) -> read_function typecheck

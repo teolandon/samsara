@@ -52,7 +52,7 @@ let if_not_bool =
 
 let let_type_mismatch =
   Type_error
-    "Type mismatch in let bind: Label and expressio not of the same type"
+    "Type mismatch in let bind: Label and expression not of the same type"
 
 let fun_type_mismatch =
   Type_error
@@ -127,7 +127,7 @@ type expr =
   | EArrayRef of (expr * expr)
   | ELength   of expr
 
-  | EPtr      of int
+  | EPtr      of (typ * int)
   | EArrayPtr of (typ * int * int)
 
 
@@ -279,7 +279,7 @@ let rec string_of_value expr =
       Printf.sprintf "new %s[%s]" (string_of_type typ) (string_of_value cap)
   | EArrayRef (arr, index) ->
       Printf.sprintf "%s[%s]" (string_of_value arr) (string_of_value index)
-  | EPtr num -> Printf.sprintf "Ptr(%08x)" num
+  | EPtr (_, num) -> Printf.sprintf "Ptr(%08x)" num
   | EArrayPtr (t, addr, cap) ->
       Printf.sprintf "Arr(%08x - %08x)" addr (addr+cap)
   | EWhile (e1, e2) ->
@@ -336,13 +336,13 @@ let assign env addr expr =
  *
  * The expression expr given has to be a value.
  *)
-let malloc env expr =
+let malloc typ env expr =
   if not (is_value expr) then
     raise (Expr_error "Cannot store reference to non-value. Check compiler")
   else
     let addr = get_addr () in
     let new_env = assign env addr expr in
-    (new_env, EPtr addr)
+    (new_env, EPtr (typ, addr))
 
 let malloc_array cap typ =
   let addr = !address_count in
@@ -414,176 +414,6 @@ let rec subst value str expr =
   | EWhile (e1, e2) -> EWhile (subst e1, subst e2)
   | ELength e -> ELength (subst e)
   | _ -> expr
-
-(* step expr evaluates the expression expr using small-step semantics.
- * Any expression expr will be simplified one step. If expr is a value,
- * then expr is returned as-is.
- *)
-let rec step (env:environment) (expr:expr) =
-  let env_ref = ref env in
-  let step_h expr =
-    let (new_env, stepped) = step !env_ref expr in
-    env_ref := new_env; stepped
-  in
-  let stepped =
-    match expr with
-    | value when is_value value -> value
-    | EOpr (opr, expr1, expr2) when not (is_value expr1) ->
-        EOpr (opr, step_h expr1, expr2)
-    | EOpr (opr, expr1, expr2) when not (is_value expr2) ->
-        EOpr (opr, expr1, step_h expr2)
-    | EOpr (opr, expr1, expr2) ->
-        let func = fun_of_opr opr in
-        func expr1 expr2
-    | EComp (comp, expr1, expr2) when not (is_value expr1) ->
-        EComp (comp, step_h expr1, expr2)
-    | EComp (comp, expr1, expr2) when not (is_value expr2) ->
-        EComp (comp, expr1, step_h expr2)
-    | EComp (comp, expr1, expr2) ->
-        let func = fun_of_comp comp in
-        func expr1 expr2
-    | EIf (expr1, expr2, expr3) when not (is_value expr1) ->
-        EIf (step_h expr1, expr2, expr3)
-    | EIf (expr1, expr2, expr3) ->
-        (match expr1 with
-        | EBool true -> expr2
-        | EBool false -> expr3
-        | _           -> raise if_type_mismatch
-        )
-    | ELet (id, t, expr1, expr2) when not (is_value expr1) ->
-        ELet (id, t, step_h expr1, expr2)
-    | ELet (id, _, expr1, expr2) ->
-        subst expr1 id expr2
-    | EAppl (func, arg) when not (is_value func) ->
-        EAppl (step_h func, arg)
-    | EAppl (func, arg) ->
-        (match func with
-        | EFun (functype, id, vartype, expr) -> subst arg id expr
-        | EFix (name, functype, id, vartype, expr) as fixed ->
-            subst fixed name (subst arg id expr)
-        | _ -> raise (Expr_error "Function application needs a function")
-        )
-    | EPair (expr1, expr2) when not (is_value expr1) ->
-        EPair (step_h expr1, expr2)
-    | EPair (expr1, expr2) when not (is_value expr2) ->
-        EPair (expr1, step_h expr2)
-    | EFst expr when not (is_value expr) -> EFst (step_h expr)
-    | EFst expr ->
-        (match expr with
-        | EPair (expr1, expr2) -> expr1
-        | _                     -> raise (pair_type_error "fst")
-        )
-    | ESnd expr when not (is_value expr) -> ESnd (step_h expr)
-    | ESnd expr ->
-        (match expr with
-        | EPair (expr1, expr2) -> expr2
-        | _                     -> raise (pair_type_error "snd")
-        )
-    | EHead expr when not (is_value expr) -> EHead (step_h expr)
-    | EHead expr ->
-        (match expr with
-        | ECons (expr1, expr2) -> expr1
-        | _                  -> raise (list_type_error "hd")
-        )
-    | ETail expr when not (is_value expr) -> ETail (step_h expr)
-    | ETail expr ->
-        (match expr with
-        | ECons (expr1, expr2) -> expr2
-        | _                  -> raise (list_type_error "tl")
-        )
-    | ECons (expr1, expr2) when not (is_value expr1) ->
-        ECons (step_h expr1, expr2)
-    | ECons (expr1, expr2) when not (is_value expr2) ->
-        ECons (expr1, step_h expr2)
-    | EEmpty expr when not (is_value expr) -> EEmpty (step_h expr)
-    | EEmpty expr ->
-        (match expr with
-        | ENewList _ -> EBool true
-        | _           -> EBool false
-        )
-    | ERef expr when not (is_value expr) ->
-        ERef (step_h expr)
-    | ERef expr ->
-        let (new_env, ptr) = malloc !env_ref expr in
-        env_ref := new_env; ptr
-    | EAssign (ref, expr) ->
-        (match (ref, expr) with
-        | (r, e) when not (is_value e) -> EAssign (r, step_h e)
-        | (EArrayRef (arr, addr), _) when not (is_value arr) ->
-          EAssign (EArrayRef (step_h arr, addr), expr)
-        | (EArrayRef (arr, addr), _) when not (is_value addr) ->
-          EAssign (EArrayRef (arr, step_h addr), expr)
-        | (EArrayRef (EArrayPtr (_, addr, cap), EInt i), e) ->
-            if i < cap then
-              (env_ref := assign !env_ref (addr + i) expr; EUnit)
-            else
-              raise (Expr_error "Array index out of bounds")
-        | (EPtr addr, _) -> env_ref := assign !env_ref addr expr; EUnit
-        | (r, e) when not (is_value r) -> EAssign (step_h ref, expr)
-        | _ -> raise generic_type_err
-        )
-    | EDeref ptr ->
-        (match ptr with
-        | EPtr addr -> get_val !env_ref addr
-        | ref_expr when not (is_value ref_expr) -> EDeref (step_h ptr)
-        | _ -> raise generic_type_err
-        )
-    | ESeq (expr1, expr2) when not (is_value expr1) ->
-        ESeq (step_h expr1, expr2)
-    | ESeq (expr1, expr2) -> expr2
-    | ENewArray (typ, cap) when not (is_value cap) ->
-        ENewArray (typ, step_h cap)
-    | ENewArray (typ, cap) ->
-        (match cap with
-        | EInt i -> malloc_array i typ
-        | _      -> raise generic_type_err
-        )
-    | EArrayRef (arr, index) when not (is_value arr) ->
-        EArrayRef (step_h arr, index)
-    | EArrayRef (arr, index) when not (is_value index) ->
-        EArrayRef (arr, step_h index)
-    | EArrayRef (arr, index) ->
-        (match (arr, index) with
-        | (EArrayPtr (_, addr, cap), EInt i) ->
-            if i < cap then
-              try get_val !env_ref (addr + i) with
-              Not_found -> raise (Expr_error "Array value not initialized")
-            else
-              raise generic_type_err
-        | (EArrayPtr _, _)              -> raise generic_type_err
-        | _                             -> raise generic_type_err
-        )
-    | EWhile  (e1, e2) as wloop -> EIf (e1, ESeq (e2, wloop), EUnit)
-    | ELength e ->
-        (match e with
-        | exp when not (is_value exp) -> ELength (step_h e)
-        | EArrayPtr (_, _, cap) -> EInt cap
-        | _ -> raise generic_type_err
-        )
-    | _ -> raise generic_type_err
-  in
-  (!env_ref, stepped)
-
-(* evaluate_value expr calls step on expr repeatedly until
- * the result is a value, when it returns the fully evaluated form
- * of expr.
- *)
-let rec evaluate_value env expr =
-  match expr with
-  | value when is_value value -> (env, value)
-  | some_val ->
-      let (new_env, stepped) = step env some_val in
-      evaluate_value new_env stepped
-
-(* Same as evaluate_value, but prints out each step. *)
-let rec evaluate_print_steps env value =
-  match value with
-  | value when is_value value -> (env, value)
-  | some_val ->
-      let (new_env, stepped) = step env some_val in
-      ignore(Printf.printf "%s | %s\n" (string_of_value stepped)
-        (string_of_env new_env));
-      evaluate_print_steps new_env stepped
 
 (* typecheck context expr typechecks the expression expr
  * with the type context context.
@@ -707,22 +537,198 @@ let rec typecheck context expr =
   | EWhile (expr1, expr2) ->
       (match typecheck context expr1 with
       | TBool -> TUnit
-      | _     -> raise generic_type_err
+      | _     -> raise (Type_error "while")
       )
   | ENewArray (typ, cap) ->
       if (typecheck context cap) = TNum then
         TArray typ
       else
-        raise generic_type_err
+        raise (Type_error "newarray")
   | EArrayRef (arr, index) ->
-      (match (arr, index) with
-      | (EArrayPtr (typ, _, _), EInt _) -> typ
-      | (EArrayPtr _, _) -> raise generic_type_err
-      | _                -> raise generic_type_err
+      (match (typecheck context arr, typecheck context index) with
+      | (TArray typ, TNum) -> typ
+      | (TArray _, _)      -> raise (Type_error "arrayref not int")
+      | _                  -> raise (Type_error "arrayref not array")
       )
   | ELength arr ->
       (match typecheck context arr with
       | TArray _ -> TNum
-      | _        -> raise generic_type_err
+      | _        -> raise (Type_error "length not array")
       )
-  | EArrayPtr _ | EPtr _ -> raise generic_type_err
+  | EArrayPtr (t, _, _) -> TArray t
+  | EPtr (t, _) -> TRef t
+
+(* step expr evaluates the expression expr using small-step semantics.
+ * Any expression expr will be simplified one step. If expr is a value,
+ * then expr is returned as-is.
+ *)
+let rec step (env:environment) (expr:expr) =
+  let env_ref = ref env in
+  let step_h expr =
+    let (new_env, stepped) = step !env_ref expr in
+    env_ref := new_env; stepped
+  in
+  let stepped =
+    match expr with
+    | value when is_value value -> value
+    | EOpr (opr, expr1, expr2) when not (is_value expr1) ->
+        EOpr (opr, step_h expr1, expr2)
+    | EOpr (opr, expr1, expr2) when not (is_value expr2) ->
+        EOpr (opr, expr1, step_h expr2)
+    | EOpr (opr, expr1, expr2) ->
+        let func = fun_of_opr opr in
+        func expr1 expr2
+    | EComp (comp, expr1, expr2) when not (is_value expr1) ->
+        EComp (comp, step_h expr1, expr2)
+    | EComp (comp, expr1, expr2) when not (is_value expr2) ->
+        EComp (comp, expr1, step_h expr2)
+    | EComp (comp, expr1, expr2) ->
+        let func = fun_of_comp comp in
+        func expr1 expr2
+    | EIf (expr1, expr2, expr3) when not (is_value expr1) ->
+        EIf (step_h expr1, expr2, expr3)
+    | EIf (expr1, expr2, expr3) ->
+        (match expr1 with
+        | EBool true -> expr2
+        | EBool false -> expr3
+        | _           -> raise if_type_mismatch
+        )
+    | ELet (id, t, expr1, expr2) when not (is_value expr1) ->
+        ELet (id, t, step_h expr1, expr2)
+    | ELet (id, _, expr1, expr2) ->
+        subst expr1 id expr2
+    | EAppl (func, arg) when not (is_value func) ->
+        EAppl (step_h func, arg)
+    | EAppl (func, arg) ->
+        (match func with
+        | EFun (functype, id, vartype, expr) -> subst arg id expr
+        | EFix (name, functype, id, vartype, expr) as fixed ->
+            subst fixed name (subst arg id expr)
+        | _ -> raise (Expr_error "Function application needs a function")
+        )
+    | EPair (expr1, expr2) when not (is_value expr1) ->
+        EPair (step_h expr1, expr2)
+    | EPair (expr1, expr2) when not (is_value expr2) ->
+        EPair (expr1, step_h expr2)
+    | EFst expr when not (is_value expr) -> EFst (step_h expr)
+    | EFst expr ->
+        (match expr with
+        | EPair (expr1, expr2) -> expr1
+        | _                     -> raise (pair_type_error "fst")
+        )
+    | ESnd expr when not (is_value expr) -> ESnd (step_h expr)
+    | ESnd expr ->
+        (match expr with
+        | EPair (expr1, expr2) -> expr2
+        | _                     -> raise (pair_type_error "snd")
+        )
+    | EHead expr when not (is_value expr) -> EHead (step_h expr)
+    | EHead expr ->
+        (match expr with
+        | ECons (expr1, expr2) -> expr1
+        | _                  -> raise (list_type_error "hd")
+        )
+    | ETail expr when not (is_value expr) -> ETail (step_h expr)
+    | ETail expr ->
+        (match expr with
+        | ECons (expr1, expr2) -> expr2
+        | _                  -> raise (list_type_error "tl")
+        )
+    | ECons (expr1, expr2) when not (is_value expr1) ->
+        ECons (step_h expr1, expr2)
+    | ECons (expr1, expr2) when not (is_value expr2) ->
+        ECons (expr1, step_h expr2)
+    | EEmpty expr when not (is_value expr) -> EEmpty (step_h expr)
+    | EEmpty expr ->
+        (match expr with
+        | ENewList _ -> EBool true
+        | _           -> EBool false
+        )
+    | ERef expr when not (is_value expr) ->
+        ERef (step_h expr)
+    | ERef expr ->
+        let (new_env, ptr) = malloc (typecheck [] expr) !env_ref expr in
+        env_ref := new_env; ptr
+    | EAssign (ref, expr) ->
+        (match (ref, expr) with
+        | (r, e) when not (is_value e) -> EAssign (r, step_h e)
+        | (EArrayRef (arr, addr), _) when not (is_value arr) ->
+          EAssign (EArrayRef (step_h arr, addr), expr)
+        | (EArrayRef (arr, addr), _) when not (is_value addr) ->
+          EAssign (EArrayRef (arr, step_h addr), expr)
+        | (EArrayRef (EArrayPtr (_, addr, cap), EInt i), e) ->
+            if i < cap then
+              (env_ref := assign !env_ref (addr + i) expr; EUnit)
+            else
+              raise (Expr_error "Array index out of bounds")
+        | (EPtr (_, addr), _) -> env_ref := assign !env_ref addr expr; EUnit
+        | (r, e) when not (is_value r) -> EAssign (step_h ref, expr)
+        | _ -> raise generic_type_err
+        )
+    | EDeref ptr ->
+        (match ptr with
+        | EPtr (_, addr) -> get_val !env_ref addr
+        | ref_expr when not (is_value ref_expr) -> EDeref (step_h ptr)
+        | _ -> raise generic_type_err
+        )
+    | ESeq (expr1, expr2) when not (is_value expr1) ->
+        ESeq (step_h expr1, expr2)
+    | ESeq (expr1, expr2) -> expr2
+    | ENewArray (typ, cap) when not (is_value cap) ->
+        ENewArray (typ, step_h cap)
+    | ENewArray (typ, cap) ->
+        (match cap with
+        | EInt i -> malloc_array i typ
+        | _      -> raise generic_type_err
+        )
+    | EArrayRef (arr, index) when not (is_value arr) ->
+        EArrayRef (step_h arr, index)
+    | EArrayRef (arr, index) when not (is_value index) ->
+        EArrayRef (arr, step_h index)
+    | EArrayRef (arr, index) ->
+        (match (arr, index) with
+        | (EArrayPtr (_, addr, cap), EInt i) ->
+            if i < cap then
+              try get_val !env_ref (addr + i) with
+              Not_found -> raise (Expr_error "Array value not initialized")
+            else
+              raise generic_type_err
+        | (EArrayPtr _, _)              -> raise generic_type_err
+        | _                             -> raise generic_type_err
+        )
+    | EWhile  (e1, e2) as wloop -> EIf (e1, ESeq (e2, wloop), EUnit)
+    | ELength e ->
+        (match e with
+        | exp when not (is_value exp) -> ELength (step_h e)
+        | EArrayPtr (_, _, cap) -> EInt cap
+        | _ -> raise generic_type_err
+        )
+    | _ -> raise generic_type_err
+  in
+  (!env_ref, stepped)
+
+(* evaluate_value expr calls step on expr repeatedly until
+ * the result is a value, when it returns the fully evaluated form
+ * of expr.
+ *)
+let rec evaluate_value env expr =
+  let typ = typecheck [] expr in
+  let evaluated =
+    match expr with
+    | value when is_value value -> (env, value)
+    | some_val ->
+        let (new_env, stepped) = step env some_val in
+        snd (evaluate_value new_env stepped)
+  in
+  (typ, evaluated)
+
+(* Same as evaluate_value, but prints out each step. *)
+let rec evaluate_print_steps env value =
+  ignore(typecheck [] value);
+  match value with
+  | value when is_value value -> (env, value)
+  | some_val ->
+      let (new_env, stepped) = step env some_val in
+      ignore(Printf.printf "%s | %s\n" (string_of_value stepped)
+        (string_of_env new_env));
+      evaluate_print_steps new_env stepped
