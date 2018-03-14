@@ -462,8 +462,9 @@ let rec typecheck context expr =
   | EId id -> get_type context id
   | EFun (functype, id, vartype, expr) ->
       let new_context = add_bind context id vartype in
-      if functype = (typecheck new_context expr) then
-        TChain (vartype, functype)
+      let t_func = (typecheck new_context expr) in
+      if functype = t_func || functype = TInfer then
+        TChain (vartype, t_func)
       else
         raise fun_type_mismatch
   | EFix  (name, functype, id, vartype, expr) ->

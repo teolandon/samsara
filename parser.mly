@@ -152,7 +152,7 @@ opr:
 %inline operator:
   | PLUS  { EPlus }
   | MINUS { EMinus }
-  | STAR { EMult }
+  | STAR  { EMult }
   | DIV   { EDiv }
   | MOD   { EMod }
 
@@ -170,19 +170,30 @@ cond:
   | IF; c = expr; THEN; e1 = expr; ELSE; e2 = expr { EIf (c, e1, e2) }
 
 letbind:
-  | LET; id_typ = idset; ASSIGN; e1 = expr; IN; e2 = expr
-    { let (id, typ) = id_typ in ELet (id, typ, e1, e2) }
+  | LET; id = ID; typ = id_typeset?; ASSIGN; e1 = expr; IN; e2 = expr
+    {
+      match typ with
+      | None     -> ELet (id, TInfer, e1, e2)
+      | Some typ -> ELet (id, typ, e1, e2)
+    }
 
-idset:
-  | id = ID; { (id, TInfer) }
-  | id = ID; COLON; typ=typeset { (id, typ) }
+id_typeset:
+  | COLON; typ=typeset { typ }
 
 defun:
-  | FUN; LEFT_PAREN; id = ID; COLON; typ = typeset; RIGHT_PAREN; COLON;
-    functype = typeset; ARROW; e = expr
-      {EFun (functype, id, typ, e)}
-  | FUN; UNIT; COLON; functype = typeset; ARROW; e = expr
-      {EFun (functype, "", TUnit, e)}
+  | FUN; LEFT_PAREN; id = ID; COLON; typ = typeset; RIGHT_PAREN;
+    functype = id_typeset?; ARROW; e = expr
+    {
+      match functype with
+      | None          -> EFun (TInfer, id, typ, e)
+      | Some functype -> EFun (functype, id, typ, e)
+    }
+  | FUN; UNIT; functype = id_typeset?; ARROW; e = expr
+    {
+      match functype with
+      | None          -> EFun (TInfer, "", TUnit, e)
+      | Some functype -> EFun (functype, "", TUnit, e)
+    }
 
 fixfun:
   | FIX; func = ID; LEFT_PAREN; id = ID; COLON; typ = typeset; RIGHT_PAREN;
@@ -190,8 +201,7 @@ fixfun:
       {EFix (func, functype, id, typ, e)}
 
 appl:
-  | e1 = expr; APPLY; e2 = expr
-    { EAppl (e1, e2) }
+  | e1 = expr; APPLY; e2 = expr { EAppl (e1, e2) }
 
 typeset:
   | t1 = typeset; TYPECHAIN; t2 = typeset { TChain (t1, t2) }
