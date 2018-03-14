@@ -64,3 +64,9 @@ Type error: Type mismatch in function application: Expression treated as functio
 3
 032-array-length.arith:
 30
+033-funcs.arith:
+true
+034-pairs.arith:
+(true, 5)
+035-more-funcs.arith:
+5

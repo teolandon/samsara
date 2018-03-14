@@ -1,0 +1,13 @@
+let max =
+  fun (x:num) =>
+  fun (y:num) =>
+    if x < y then
+      y
+    else
+      x
+in
+let is_even =
+  fun (x:num) =>
+    x % 2 < 1
+in
+(is_even <- 4, max <- 2 <- 5)

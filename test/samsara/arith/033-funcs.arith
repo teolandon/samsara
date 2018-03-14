@@ -1,0 +1,1 @@
+let func:num->bool = fun (x:num) => x < 2 in if func <- 6 then false else true

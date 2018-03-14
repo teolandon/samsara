@@ -1,0 +1,11 @@
+let compare =
+  fun (x:num) =>
+  fun (y:num) =>
+  if x < y then
+    y
+  else
+    x
+in
+let a = 5 in
+let b = 2 in
+compare <- a <- b
