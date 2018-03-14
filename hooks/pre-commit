@@ -6,7 +6,7 @@ TEST_RESULTS=$(make test)
 
 ERROR=$?
 
-if [ -z ALREADY_COMPILED ]; then
+if [ -z $ALREADY_COMPILED ]; then
   make clean
 fi
 
