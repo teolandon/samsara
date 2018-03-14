@@ -1,10 +1,14 @@
 #!/bin/bash
 
+ALREADY_COMPILED=$(ls -l | grep "_build\$")
+
 TEST_RESULTS=$(make test)
 
 ERROR=$?
 
-make clean
+if [ -z ALREADY_COMPILED ]; then
+  make clean
+fi
 
 if [[ $ERROR != 0 ]]; then
   echo "Error: tests not passing"
