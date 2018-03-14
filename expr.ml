@@ -50,9 +50,10 @@ let if_not_bool =
   Type_error
     "Type mismatch in if expression: Condition is not of boolean type"
 
-let let_type_mismatch =
+let let_type_mismatch t1 t2 =
   Type_error
-    "Type mismatch in let bind: Label and expression not of the same type"
+    ("Type mismatch in let bind: Label and expression not of the same type" ^
+    "\n" ^ t1 ^ " -- " ^ t2)
 
 let fun_type_mismatch =
   Type_error
@@ -88,6 +89,8 @@ type typ =
   | TPair  of (typ * typ) (* Pairs of two types  *)
   | TChain of (typ * typ) (* A TChain (t1, t2) means t1->t2, a function
                            * that takes type t1 and returns a type t2 *)
+  | TInfer                (* Temporary type, to be replaced during type
+                             inference *)
 
 (* Helper types for expressions *)
 type opr =
@@ -220,6 +223,7 @@ let rec string_of_type typ =
       "(" ^ (string_of_type t1) ^ ", " ^ (string_of_type t2) ^ ")"
   | TChain (t1, t2)  -> (string_of_type t1) ^ "->" ^ (string_of_type t2)
   | TList t -> "[" ^ (string_of_type t) ^ "]"
+  | TInfer  -> "infer"
 
 let rec string_of_value expr =
   match expr with
@@ -420,7 +424,7 @@ let rec subst value str expr =
  *)
 let rec typecheck context expr =
   match expr with
-  | EUnit -> TUnit
+  | EUnit  -> TUnit
   | EInt _ | EFloat _ | ENaN -> TNum
   | EBool _                  -> TBool
   | EOpr (opr, expr1, expr2) ->
@@ -449,11 +453,12 @@ let rec typecheck context expr =
       else
         raise if_not_bool
   | ELet (id, typ, expr1, expr2) ->
-      let new_context = add_bind context id typ in
-      if typ = (typecheck context expr1) then
+      let t1 = (typecheck context expr1) in
+      if typ = TInfer || typ = t1 then
+        let new_context = add_bind context id t1 in
         typecheck new_context expr2
       else
-        raise let_type_mismatch
+        raise (let_type_mismatch (string_of_type t1) (string_of_type typ))
   | EId id -> get_type context id
   | EFun (functype, id, vartype, expr) ->
       let new_context = add_bind context id vartype in

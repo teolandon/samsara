@@ -170,8 +170,12 @@ cond:
   | IF; c = expr; THEN; e1 = expr; ELSE; e2 = expr { EIf (c, e1, e2) }
 
 letbind:
-  | LET; id = ID; COLON; typ = typeset; ASSIGN; e1 = expr; IN; e2 = expr
-    { ELet (id, typ, e1, e2) }
+  | LET; id_typ = idset; ASSIGN; e1 = expr; IN; e2 = expr
+    { let (id, typ) = id_typ in ELet (id, typ, e1, e2) }
+
+idset:
+  | id = ID; { (id, TInfer) }
+  | id = ID; COLON; typ=typeset { (id, typ) }
 
 defun:
   | FUN; LEFT_PAREN; id = ID; COLON; typ = typeset; RIGHT_PAREN; COLON;
