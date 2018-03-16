@@ -1,1 +1,2 @@
-let pair:(num*num) = (2, 3) in pair
+let pair = (2, 3) in
+pair

@@ -396,29 +396,30 @@ let assign_generic context i typ = (*****CARE FOR WHEN i IS NOT IN CONTEXT****)
     {ctx=new_ctx; generic_count}
 
 let rec type_merge context t1 t2 =
-  match (t1, t2) with
-  | (TGeneric i, t_other) | (t_other, TGeneric i) ->
-      (assign_generic context i t_other, t_other)
-  | (TRef t1, TRef t2) ->
-      let (new_context, return_type) = type_merge context t1 t2 in
-      (new_context, TRef return_type)
-  | (TArray t1, TArray t2) ->
-      let (new_context, return_type) = type_merge context t1 t2 in
-      (new_context, TArray return_type)
-  | (TList t1, TList t2) ->
-      let (new_context, return_type) = type_merge context t1 t2 in
-      (new_context, TList return_type)
-  | (TPair (t1, t2), TPair (t3, t4)) ->
-      let (new_context, return_type1) = type_merge context     t1 t3 in
-      let (new_context, return_type2) = type_merge new_context t2 t4 in
-      (new_context, TPair (return_type1, return_type2))
-  | (TChain (t1, t2), TChain (t3, t4)) ->
-      let (new_context, return_type1) = type_merge context     t1 t3 in
-      let (new_context, return_type2) = type_merge new_context t2 t4 in
-      (new_context, TChain (return_type1, return_type2))
-  | (t1, t2) when t1 = t2 -> (context, t2)
-  | _                     -> raise (Merge_error (t1, t2))
-
+  try
+    match (t1, t2) with
+    | (TGeneric i, t_other) | (t_other, TGeneric i) ->
+        (assign_generic context i t_other, t_other)
+    | (TRef t1, TRef t2) ->
+        let (new_context, return_type) = type_merge context t1 t2 in
+        (new_context, TRef return_type)
+    | (TArray t1, TArray t2) ->
+        let (new_context, return_type) = type_merge context t1 t2 in
+        (new_context, TArray return_type)
+    | (TList t1, TList t2) ->
+        let (new_context, return_type) = type_merge context t1 t2 in
+        (new_context, TList return_type)
+    | (TPair (t1, t2), TPair (t3, t4)) ->
+        let (new_context, return_type1) = type_merge context     t1 t3 in
+        let (new_context, return_type2) = type_merge new_context t2 t4 in
+        (new_context, TPair (return_type1, return_type2))
+    | (TChain (t1, t2), TChain (t3, t4)) ->
+        let (new_context, return_type1) = type_merge context     t1 t3 in
+        let (new_context, return_type2) = type_merge new_context t2 t4 in
+        (new_context, TChain (return_type1, return_type2))
+    | (t1, t2) when t1 = t2 -> (context, t2)
+    | _                     -> raise (Merge_error (t1, t2))
+  with Merge_error _ -> raise (Merge_error (t1, t2))
 
 (* get_type context id looks up the label id in the
  * association list context, and returns its type
@@ -537,10 +538,10 @@ let rec typecheck_h context expr t_constraint =
           Merge_error _ -> raise if_not_bool
         end;
         let t2 = tcheck_h expr2 t_constraint in
-        begin try
+        (* begin try *)
           tcheck_h expr3 t2
-         with Merge_error _ -> raise if_type_mismatch
-        end
+         (* with Merge_error _ -> raise if_type_mismatch *)
+        (* end *)
     | ELet (id, typ, expr1, expr2) ->
         let t1 =
           try tcheck_h expr1 typ with Merge_error (t1, t2) ->
@@ -561,6 +562,12 @@ let rec typecheck_h context expr t_constraint =
           typecheck_h new_context expr functype
         in
         let final_vartype = get_type new_context id in
+        let new_context =
+          { new_context with
+              ctx = List.remove_assoc id new_context.ctx
+          }
+        in
+        context_ref := new_context;
         TChain (final_vartype, t_func)
     | EFix (name, functype, id, vartype, expr) ->
         let new_context = !context_ref in
@@ -630,15 +637,15 @@ let rec typecheck_h context expr t_constraint =
     | ERef expr ->
         (match t_constraint with
         | TRef t -> TRef (tcheck_h expr t)
-        | TGeneric _ -> tcheck_h expr t_constraint
-        | _      -> raise (Expr_error "LASDJFIOASJD")
+        | TGeneric _ -> TRef (tcheck_h expr t_constraint)
+        | _      -> raise (Merge_error (t_constraint, TRef (TInfer)))
         )
     | EAssign (expr1, expr2) ->
-        let t1 = tcheck_h expr1 (new_generic ()) in
-        let t2 = tcheck_h expr2 (new_generic ()) in
+        let gen = new_generic () in
+        let t1 = tcheck_h expr1 (TRef gen) in
+        let t2 = tcheck_h expr2 gen in
         (match t1 with
         | TRef tref when tref = t2 -> TUnit
-        | TRef tref -> raise generic_type_err
         | _ -> raise generic_type_err
         )
     | EDeref expr ->
@@ -646,13 +653,27 @@ let rec typecheck_h context expr t_constraint =
         | TRef finaltype -> finaltype
         | _ -> assert false
         )
-    | ESeq   (_, expr2) -> tcheck_h expr2 t_constraint
+    | ESeq (expr1, expr2) ->
+        ignore(tcheck_h expr1 (new_generic ()));
+        tcheck_h expr2 t_constraint
     | EWhile (expr1, expr2) ->
         ignore(tcheck_h expr1 TBool); TUnit
     | ENewArray (typ, cap) -> ignore(tcheck_h cap TNum); TArray typ
     | EArrayRef (arr, index) ->
-        ignore(tcheck_h arr (TArray t_constraint));
-        tcheck_h index TNum
+        ignore(tcheck_h index TNum);
+        begin match t_constraint with
+        | TRef t -> let t = tcheck_h arr (TArray t) in
+                    begin match t with
+                    | TArray t -> TRef t
+                    | _ -> assert false
+                    end
+        | TGeneric _ -> let t = tcheck_h arr (TArray t_constraint) in
+                        begin match t with
+                        | TArray t -> TRef t
+                        | _ -> assert false
+                        end
+        | _ -> raise generic_type_err
+        end
     | ELength arr ->
         (match tcheck_h arr (TArray (new_generic ())) with
         | TArray _ -> TNum
@@ -829,6 +850,7 @@ let rec step (env:environment) (expr:expr) =
     | EDeref ptr ->
         (match ptr with
         | EPtr (_, addr) -> get_val !env_ref addr
+        | EArrayPtr (_, addr, cap) -> get_val !env_ref addr
         | ref_expr when not (is_value ref_expr) -> EDeref (step_h ptr)
         | _ -> raise generic_type_err
         )
@@ -848,13 +870,11 @@ let rec step (env:environment) (expr:expr) =
         EArrayRef (arr, step_h index)
     | EArrayRef (arr, index) ->
         (match (arr, index) with
-        | (EArrayPtr (_, addr, cap), EInt i) ->
+        | (EArrayPtr (t, addr, cap), EInt i) ->
             if i < cap then
-              try get_val !env_ref (addr + i) with
-              Not_found -> raise (Expr_error "Array value not initialized")
+              EArrayPtr (t, addr + i, cap - i)
             else
               raise generic_type_err
-        | (EArrayPtr _, _)              -> raise generic_type_err
         | _                             -> raise generic_type_err
         )
     | EWhile  (e1, e2) as wloop -> EIf (e1, ESeq (e2, wloop), EUnit)
@@ -872,24 +892,27 @@ let rec step (env:environment) (expr:expr) =
  * the result is a value, when it returns the fully evaluated form
  * of expr.
  *)
-let rec evaluate_value env expr =
-  let typ = typecheck expr in
-  let evaluated =
+let evaluate_value env expr =
+  let rec loop env expr =
     match expr with
     | value when is_value value -> (env, value)
     | some_val ->
         let (new_env, stepped) = step env some_val in
-        snd (evaluate_value new_env stepped)
+        loop new_env stepped
   in
-  (typ, evaluated)
+  let typ = typecheck expr in
+  (typ, loop env expr)
 
 (* Same as evaluate_value, but prints out each step. *)
-let rec evaluate_print_steps env value =
+let evaluate_print_steps env value =
+  let rec loop env value =
+    match value with
+    | value when is_value value -> (env, value)
+    | some_val ->
+        let (new_env, stepped) = step env some_val in
+        ignore(Printf.printf "%s | %s\n" (string_of_value stepped)
+          (string_of_env new_env));
+        loop new_env stepped
+  in
   ignore(typecheck value);
-  match value with
-  | value when is_value value -> (env, value)
-  | some_val ->
-      let (new_env, stepped) = step env some_val in
-      ignore(Printf.printf "%s | %s\n" (string_of_value stepped)
-        (string_of_env new_env));
-      evaluate_print_steps new_env stepped
+  loop env value;

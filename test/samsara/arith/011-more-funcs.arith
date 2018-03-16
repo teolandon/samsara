@@ -1,11 +1,11 @@
-let compare:num->num->num =
-  fun (x:num) : num->num =>
-  fun (y:num) : num =>
+let compare =
+  fun x =>
+  fun y =>
   if x < y then
     y
   else
     x
 in
-let a:num = 5 in
-let b:num = 2 in
+let a = 5 in
+let b = 2 in
 compare <- a <- b

@@ -1,1 +1,2 @@
-let f:num->num = fun (x:num) : num => x + 2 in f <- 2 * 3
+let f = fun x => x + 2
+in f <- 2 * 3
