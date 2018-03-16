@@ -1,1 +1,3 @@
-let l:[num] = 2 :: 3 :: 4 :: ([]:num) in hd <- l
+let l:[num] =
+  2 :: 3 :: 4 :: ([]:num)
+in hd <- l

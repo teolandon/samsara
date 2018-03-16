@@ -1,1 +1,2 @@
-let c:<num> = ref 2 in !c + 2
+let c:<num> = ref 2 in
+!c + 2

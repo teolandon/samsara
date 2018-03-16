@@ -85,7 +85,7 @@
 
 prog:
   | EOF { None }
-  | e = expr STOP? EOF { Some e }
+  | e = expr STOP? EOF { Some (Expr.create_generics (Expr.new_context ()) e) }
   ;
 
 expr:
@@ -181,12 +181,15 @@ id_typeset:
   | COLON; typ=typeset { typ }
 
 defun:
-  | FUN; LEFT_PAREN; id = ID; COLON; typ = typeset; RIGHT_PAREN;
-    functype = id_typeset?; ARROW; e = expr
+  | FUN; arg_type = funarg; functype = id_typeset?; ARROW; e = expr
     {
-      match functype with
-      | None          -> EFun (TInfer, id, typ, e)
-      | Some functype -> EFun (functype, id, typ, e)
+      let functype =
+        match functype with
+        | None          -> TInfer
+        | Some functype -> functype
+      in
+      match arg_type with (id, typ) ->
+      EFun (functype, id, typ, e)
     }
   | FUN; UNIT; functype = id_typeset?; ARROW; e = expr
     {
@@ -196,9 +199,21 @@ defun:
     }
 
 fixfun:
-  | FIX; func = ID; LEFT_PAREN; id = ID; COLON; typ = typeset; RIGHT_PAREN;
-    COLON; functype = typeset; ARROW; e = expr
-      {EFix (func, functype, id, typ, e)}
+  | FIX; func = ID; arg_type = funarg; functype = id_typeset?;
+    ARROW; e = expr
+    {
+      let functype =
+        match functype with
+        | None          -> TInfer
+        | Some functype -> functype
+      in
+      match arg_type with (id, typ) ->
+      EFix (func, functype, id, typ, e)
+    }
+
+funarg:
+  | id = ID { (id, TInfer) }
+  | LEFT_PAREN; id = ID; COLON; typ = typeset; RIGHT_PAREN { (id, typ) }
 
 appl:
   | e1 = expr; APPLY; e2 = expr { EAppl (e1, e2) }

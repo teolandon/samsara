@@ -31,6 +31,10 @@ let str_of_error error lexbuf =
         sprintf "Invalid expression: %s" str
     | Expr.Type_error str ->
         sprintf "Type error: %s" str
+    | Expr.Merge_error (e1, e2) ->
+        sprintf "Couldn't merge %s and %s"
+                (Expr.string_of_type e1)
+                (Expr.string_of_type e2)
     | _ -> "Unknown error occured"
 
 let failWith error lexbuf =
@@ -101,7 +105,7 @@ let type_and_evaluated lexbuf =
   try
     match parse_with_error lexbuf with
     | Some expr ->
-        ignore(Expr.typecheck [] expr);
+        ignore(Expr.typecheck expr);
         let (typ, (_, value)) = Expr.evaluate_value [] expr in
         (Expr.string_of_type typ, Expr.string_of_value value)
     | None -> ("", "")
@@ -112,7 +116,7 @@ let evaluated lexbuf =
   try
     match parse_with_error lexbuf with
     | Some expr ->
-        ignore(Expr.typecheck [] expr);
+        ignore(Expr.typecheck expr);
         Expr.string_of_value (snd (snd (Expr.evaluate_value [] expr)));
     | None -> ""
   with
@@ -121,7 +125,7 @@ let evaluated lexbuf =
 let typechecked lexbuf =
   try
     match parse_with_error lexbuf with
-    | Some expr -> Expr.string_of_type (Expr.typecheck [] expr);
+    | Some expr -> Expr.string_of_type (Expr.typecheck expr);
     | None -> ""
   with
     | _ as err -> str_of_error err lexbuf

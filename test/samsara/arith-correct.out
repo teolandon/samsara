@@ -31,7 +31,7 @@ true
 015-mult-assoc.arith:
 6
 016-mult-assoc.arith:
-Type error: Type mismatch in function application: Expression treated as function but not of a function type
+Type error: Operator + only accepts numbers
 017-3x+1.arith:
 8
 018-unit.arith:
