@@ -1,8 +1,8 @@
-let c:<num> = ref 2 in
-let d:<(num * num)> = ref (5, 2) in
-let appl:(num * num)->num->(num * num) =
-  fun (pair:(num * num)) : num->(num * num) =>
-  fun (additive:num) : (num * num) =>
+let c = ref 2 in
+let d = ref (5, 2) in
+let appl =
+  fun pair =>
+  fun additive =>
   ((fst <- pair) + additive, (snd <- pair) + additive  * 2)
 in
 d := appl <- !d <- 5;

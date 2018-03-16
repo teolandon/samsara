@@ -1,8 +1,8 @@
-let listone:[num] = 2 :: 3 :: 4 :: ([]:num) in
-let listtwo:[num] = 5 :: 6 :: 7 :: ([]:num) in
-let zip:[num]->[num]->[num] =
-  fix f (lone:[num]) : [num]->[num] =>
-  fun (ltwo:[num]) : [num] =>
+let listone = 2 :: 3 :: 4 :: ([]:num) in
+let listtwo = 5 :: 6 :: 7 :: ([]:num) in
+let zip =
+  fix f lone =>
+  fun ltwo =>
     if empty <- lone then
       []:num
     else if empty <- ltwo then

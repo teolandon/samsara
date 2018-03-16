@@ -224,7 +224,7 @@ let rec string_of_type typ =
   | TRef t   -> Printf.sprintf "<%s>" (string_of_type t)
   | TArray t -> Printf.sprintf "array<%s>" (string_of_type t)
   | TPair  (t1, t2)  ->
-      "(" ^ (string_of_type t1) ^ ", " ^ (string_of_type t2) ^ ")"
+      "(" ^ (string_of_type t1) ^ " * " ^ (string_of_type t2) ^ ")"
   | TChain (t1, t2)  -> (string_of_type t1) ^ "->" ^ (string_of_type t2)
   | TList t -> "[" ^ (string_of_type t) ^ "]"
   | TGeneric i -> Printf.sprintf "`%c" (String.get alphabet i)
@@ -386,7 +386,7 @@ let rec replace_generic i new_t old_t =
   | TChain (t1, t2) -> TChain (replace_h t1, replace_h t2)
   | _ -> old_t
 
-let assign_generic context i typ = (*****CARE FOR WHEN i IS NOT IN CONTEXT****)
+let assign_generic context i typ =
   match context with {ctx; generic_count} ->
     let new_ctx =
       List.map

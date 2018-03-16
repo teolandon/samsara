@@ -49,7 +49,7 @@ Type error: Operator + only accepts numbers
 024-list.arith:
 (3::(4::[]:num))
 025-more-lists.arith:
-(2::(5::(3::(6::(4::(7::[]:num))))))
+(2::(5::(3::(6::(4::(7::[]:`e))))))
 026-ref-cells.arith:
 4
 027-ref-cells.arith:

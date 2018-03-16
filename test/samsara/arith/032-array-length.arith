@@ -1,1 +1,1 @@
-let arr:array<num> = new num[30] in length <- arr
+let arr = new num[30] in length <- arr

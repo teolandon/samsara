@@ -1,5 +1,5 @@
-let c:<num> = ref 5 in
-let b:<[num]> = ref []:num in
+let c = ref 5 in
+let b = ref []:num in
 while !c > 0 do
   b := !c :: !b;
   c := !c - 1

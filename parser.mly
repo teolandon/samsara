@@ -124,7 +124,8 @@ arrays:
   | LENGTH; APPLY; e = expr { ELength e }
 
 lists:
-  | NEW_LIST; COLON; t = typeset { ENewList t }
+  | NEW_LIST; t = id_typeset?
+    { ENewList (match t with None -> TInfer | Some t -> t) }
   | e1 = expr; CONS; e2 = expr   { ECons (e1, e2) }
   | HD; APPLY; e = expr          { EHead e }
   | TL; APPLY; e = expr          { ETail e }
