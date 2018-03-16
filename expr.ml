@@ -469,6 +469,8 @@ let rec subst value str expr =
   | EAppl (expr1, expr2)        -> EAppl (subst expr1, subst expr2)
   | ELet  (id, typ, expr1, expr2) when id <> str ->
       ELet (id, typ, subst expr1, subst expr2)
+  | ELet  (id, typ, expr1, expr2) ->
+      ELet (id, typ, subst expr1, expr2)
   | EFun  (functype, id, vartype, expr) when id <> str ->
       EFun (functype, id, vartype, subst expr)
   | EFix  (name, functype, id, vartype, expr) when id <> str && id <> name ->
@@ -541,10 +543,8 @@ let rec typecheck_h context expr t_constraint =
         end
     | ELet (id, typ, expr1, expr2) ->
         let t1 =
-          try tcheck_h expr1 typ with
-          | Merge_error (t1, t2) ->
-              raise (let_type_mismatch
-                     (string_of_type t1) (string_of_type t2))
+          try tcheck_h expr1 typ with Merge_error (t1, t2) ->
+            raise (let_type_mismatch (string_of_type t1) (string_of_type t2))
         in
         let new_context = add_bind !context_ref id t1 in
         begin
