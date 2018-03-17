@@ -53,9 +53,10 @@ let if_not_bool =
   Type_error
     "Type mismatch in if expression: Condition is not of boolean type"
 
-let let_type_mismatch t1 t2 =
+let let_type_mismatch e1 e2 t1 t2 =
   Type_error
     ("Type mismatch in let bind: Label and expression not of the same type" ^
+    "\n" ^ e1 ^ " -- " ^ e2 ^
     "\n" ^ t1 ^ " -- " ^ t2)
 
 let fun_type_mismatch =
@@ -582,15 +583,19 @@ let rec typecheck_h context expr t_constraint =
          * checked against the type of expr3, as a constraint
          *)
         let t2 = tcheck_h expr2 t_constraint in
-        begin try
+        (* begin try *)
           tcheck_h expr3 t2
-         with Merge_error _ -> raise if_type_mismatch
-        end
+         (* with Merge_error _ -> raise if_type_mismatch *)
+        (* end *)
 
     | ELet (id, typ, expr1, expr2) ->
         let t1 =
-          try tcheck_h expr1 typ with Merge_error (t1, t2) ->
-            raise (let_type_mismatch (string_of_type t1) (string_of_type t2))
+          (* try *)
+            tcheck_h expr1 typ
+          (* with Merge_error (t1, t2) -> *)
+          (*   raise (let_type_mismatch *)
+          (*         (string_of_value expr1) (string_of_value expr2) *)
+          (*         (string_of_type t1) (string_of_type t2)) *)
         in
         (* the inferred type of expr1 is assigned to the id given *)
         let new_context = add_bind !context_ref id t1 in
@@ -665,7 +670,11 @@ let rec typecheck_h context expr t_constraint =
          * single generic and pass it as a constraint to expr2, and
          * as a part of an TChain for a constraint in expr1
          *)
-        let argtype = tcheck_h expr2 (new_generic ()) in
+        let gen = new_generic () in
+        (match gen with
+        | _ -> ()
+        );
+        let argtype = tcheck_h expr2 gen in
         let functype = tcheck_h expr1 (TChain (argtype, t_constraint)) in
         (match functype with
         | TChain (_, ret_type) -> ret_type
@@ -755,60 +764,62 @@ let rec typecheck_h context expr t_constraint =
 (* Converts all TInfer's to TGenerics and populates a context with
  * the produced generics
  *)
-let rec create_generics context expr =
+let create_generics context expr =
   let context_ref = ref context in
-  let r e =
-    create_generics !context_ref e
-  in
-  let new_generic () =
-    match new_generic !context_ref with (new_context, generic) ->
-      context_ref := new_context; generic
-  in
-  match expr with
-    | ELet (id, typ, expr1, expr2) when typ = TInfer ->
-        ELet (id, new_generic (), r expr1, r expr2)
-    | EFun (functype, id, vartype, expr) when functype = TInfer ->
-        r (EFun (new_generic (), id, vartype, expr))
-    | EFun (functype, id, vartype, expr) when vartype = TInfer ->
-        r (EFun (functype, id, new_generic (), expr))
-    | EFix (name, functype, id, vartype, expr) when functype = TInfer ->
-        r (EFix (name, new_generic (), id, vartype, expr))
-    | EFix (name, functype, id, vartype, expr) when vartype = TInfer ->
-        r (EFix (name, functype, id, new_generic (), expr))
-    | ENewList typ when typ = TInfer ->
-        ENewList (new_generic ())
-    | ENewArray (typ, cap) when typ = TInfer ->
-        ENewArray (new_generic (), r cap)
+  let rec loop expr =
+    let new_generic () =
+      match new_generic !context_ref with (new_context, generic) ->
+        context_ref := new_context; generic
+    in
+    match expr with
+      | ELet (id, typ, expr1, expr2) when typ = TInfer ->
+          let gen = new_generic () in ELet (id, gen, loop expr1, loop expr2)
+      | EFun (functype, id, vartype, expr) when functype = TInfer ->
+          let gen = new_generic () in loop (EFun (gen, id, vartype, expr))
+      | EFun (functype, id, vartype, expr) when vartype = TInfer ->
+          let gen = new_generic () in loop (EFun (functype, id, gen, expr))
+      | EFix (name, functype, id, vartype, expr) when functype = TInfer ->
+          let gen = new_generic () in loop (EFix (name, gen, id, vartype, expr))
+      | EFix (name, functype, id, vartype, expr) when vartype = TInfer ->
+          let gen = new_generic () in loop (EFix (name, functype, id, gen, expr))
+      | ENewList typ when typ = TInfer ->
+          let gen = new_generic () in ENewList gen
+      | ENewArray (typ, cap) when typ = TInfer ->
+          let gen = new_generic () in ENewArray (gen, loop cap)
 
-    | ELet (id, typ, expr1, expr2) -> ELet (id, typ, r expr1, r expr2)
-    | EFun (functype, id, vartype, expr) ->
-        EFun (functype, id, vartype, r expr)
-    | EFix (name, functype, id, vartype, expr) ->
-        EFix (name, functype, id, vartype, r expr)
-    | ENewArray (typ, cap) -> ENewArray (typ, r cap)
-    | EOpr (opr, e1, e2)   -> EOpr (opr, r e1, r e2)
-    | EComp (comp, e1, e2) -> EComp (comp, r e1, r e2)
-    | EIf (e1, e2, e3)     -> EIf (r e1, r e2, r e3)
-    | EAppl (e1, e2) -> EAppl (r e1, r e2)
-    | EPair (e1, e2) -> EPair (r e1, r e2)
-    | EFst expr -> EFst (r expr)
-    | ESnd expr -> ESnd (r expr)
-    | ECons (e1, e2) -> ECons (r e1, r e2)
-    | EHead expr -> EHead (r expr)
-    | ETail expr -> ETail (r expr)
-    | EEmpty expr -> EEmpty (r expr)
-    | ERef expr -> ERef (r expr)
-    | EAssign (e1, e2) -> EAssign (r e1, r e2)
-    | EDeref expr -> EDeref (r expr)
-    | ESeq (e1, e2) -> ESeq (r e1, r e2)
-    | EWhile (e1, e2) -> EWhile (r e1, r e2)
-    | EArrayRef (e1, e2) -> EArrayRef (r e1, r e2)
-    | ELength expr -> ELength (r expr)
-    | _ -> expr
+      | ELet (id, typ, expr1, expr2) -> ELet (id, typ, loop expr1, loop expr2)
+      | EFun (functype, id, vartype, expr) ->
+          EFun (functype, id, vartype, loop expr)
+      | EFix (name, functype, id, vartype, expr) ->
+          EFix (name, functype, id, vartype, loop expr)
+      | ENewArray (typ, cap) -> ENewArray (typ, loop cap)
+      | EOpr (opr, e1, e2)   -> EOpr (opr, loop e1, loop e2)
+      | EComp (comp, e1, e2) -> EComp (comp, loop e1, loop e2)
+      | EIf (e1, e2, e3)     -> EIf (loop e1, loop e2, loop e3)
+      | EAppl (e1, e2) -> EAppl (loop e1, loop e2)
+      | EPair (e1, e2) -> EPair (loop e1, loop e2)
+      | EFst expr -> EFst (loop expr)
+      | ESnd expr -> ESnd (loop expr)
+      | ECons (e1, e2) -> ECons (loop e1, loop e2)
+      | EHead expr -> EHead (loop expr)
+      | ETail expr -> ETail (loop expr)
+      | EEmpty expr -> EEmpty (loop expr)
+      | ERef expr -> ERef (loop expr)
+      | EAssign (e1, e2) -> EAssign (loop e1, loop e2)
+      | EDeref expr -> EDeref (loop expr)
+      | ESeq (e1, e2) -> ESeq (loop e1, loop e2)
+      | EWhile (e1, e2) -> EWhile (loop e1, loop e2)
+      | EArrayRef (e1, e2) -> EArrayRef (loop e1, loop e2)
+      | ELength expr -> ELength (loop expr)
+      | _ -> expr
+  in
+  let ret = loop expr in
+  (!context_ref, ret)
 
 (* Front-face for typecheck_h *)
 let typecheck expr =
   let context = new_context () in
+  let (context, expr) = create_generics context expr in
   let (context, gen) = new_generic context in
   match typecheck_h context expr gen with (final_context, typ) -> typ
 

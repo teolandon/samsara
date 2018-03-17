@@ -86,7 +86,7 @@
 
 prog:
   | EOF { None }
-  | e = expr STOP? EOF { Some (Expr.create_generics (Expr.new_context ()) e) }
+  | e = expr STOP? EOF { Some e }
   ;
 
 expr:

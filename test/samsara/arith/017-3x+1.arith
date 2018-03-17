@@ -2,8 +2,8 @@ let iseven = fun x => (x % 2) < 1 in
 let func =
   fix f depth =>
   fun n =>
-    if n < 2
-    then depth
+    if n < 2 then
+      depth
     else
       if (iseven <- n)
       then f <- (depth + 1) <- (n / 2)
