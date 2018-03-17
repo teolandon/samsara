@@ -1,4 +1,3 @@
-# samsara
 A Samsara compiler in OCaml. Also an assignment repo for CSC-312
 Language Implementation with Peter Michael Osera. By Theo Kalfas.
 
@@ -301,6 +300,7 @@ testing and keep commits clean and correct. Refer to the HOOKS.md file in the
 
 ### Changed
 * Now actually typechecks before evaluation.
+  * Note that with this change, assignments 05 and 06 have been revised.
 * Now actually typechecks ref cells and array indexing correctly.
   * Due to the above change, array indexing evaluates to a ref cell
     that contains the desired value, and is addressed at the initial
@@ -309,6 +309,7 @@ testing and keep commits clean and correct. Refer to the HOOKS.md file in the
 
 ### Known bugs
 * Insufficient and inaccurate error reporting.
+* Insufficient testing on type inference.
 * Generics remain in the AST, are only generated during typechecking
   and are then thrown away.
 
