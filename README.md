@@ -319,7 +319,7 @@ testing and keep commits clean and correct. Refer to the HOOKS.md file in the
         let f = fun x => x::[] in
         f <- 2
 
-    will typecheck to a `[\`f]`, a generic list. However,
+    will typecheck to a ``[`f]``, a generic list. However,
 
         let f = fun x => x::[] in
         (f <- 2, f <- true)
