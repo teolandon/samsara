@@ -18,6 +18,11 @@ FLAGS = -use-menhir -use-ocamlfind
 
 all: samsara
 
+ledit:
+	$(MAKE) -C vendor/ledit-2.04/ all
+	$(MAKE) -C vendor/ledit-2.04/ install-lib
+	$(MAKE) -C vendor/ledit-2.04/ clean
+
 samsara: parser.mly lexer.mll samsara.ml
 	$(CC) $(FLAGS) samsara.native
 

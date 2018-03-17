@@ -872,7 +872,7 @@ let rec step (env:environment) (expr:expr) =
         (match (arr, index) with
         | (EArrayPtr (t, addr, cap), EInt i) ->
             if i < cap then
-              EArrayPtr (t, addr + i, cap - i)
+              EPtr (t, addr + i)
             else
               raise generic_type_err
         | _                             -> raise generic_type_err

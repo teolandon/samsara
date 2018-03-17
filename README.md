@@ -26,23 +26,27 @@ samsara supports several execution flags:
     given until the final evaluation to a singular value.
 * _-type_ simply typechecks the expression and prints the type of the given expression.
 * _-stdin_ switches input from files to stdin.
+* _-repl_ starts the Samsara Read-Evaluation-Print Loop. Also starts if no file
+  arguments or flags are specified
 
 ## Syntax
 The syntax is described by the following context free grammar:
 
     e    ::= (e) | n | bool | if e then e else e
            | fun (x:t) : t => e | fix f (x:t) : t => e | fun () => e
-           | x | e <- e | let x:t = e in e
+           | fun x => e | fun (x:t) => e | fun x : t => e
+           | fix f x => e | fix f (x:t) => e | fix f x : t => e
+           | x | e <- e | let x:t = e in e | let x = e in e
            | (e, e) | fst <- e | snd <- e
-           | []:t | e :: e | hd <- e | tl <- e | empty <- e
+           | []:t | [] | e :: e | hd <- e | tl <- e | empty <- e
            | ref e | !e | e := e | e; e
            | while e do e end
            | new t[e] | e[e] | length <- e
            | ()
-    n  ::= (n) | n | f | NaN | n + n | n - n
-           | n * n | n / n | n % n
-    bool ::= (bool) | true | false | n < n | n <= n | n > n
-           | n >= n
+           | f | NaN | e + e | e - e
+           | e * e | e / e | e % e
+           | (bool) | true | false | e < e | e <= e | e > e
+           | e >= e
 
     t    ::= num | bool | unit | [t] | (t, t) | t->t | <t> | array<t>
 
@@ -111,6 +115,7 @@ Where:
 * `fst <- e` provides the first element of a pair `e`, while `snd <- e` provides the
   second.
 * `[]:t` constructs an empty list of type `t`.
+  * `[]` constructs an empty list of a generic type.
 * `e1::e2` appends `e1` to the list `e2`, given that it typechecks correctly.
 * `hd <- e` returns the head element of the list `e`, while `tl <- e` provides
   the rest of the elements as a list.
@@ -134,6 +139,9 @@ Where:
   expression `e1` is `false`, at which point it evaluates to the unit value,
   `()`. Under the hood, it unrolls to the expression `if e1 then e2; while e1
   do e2 end else ()`.
+* `let` and `fun` bindings infer their type from the expression following them.
+* `[]` is an untyped empty list, can be attached to any other element, which
+  sets the type of the list.
 
 Some operations have margin for errors and type mismatches. These are usually
 raised with an error message describing the error, but not its location, because
@@ -155,21 +163,67 @@ type mismatches. For the rules of typechecking, refer to the
 [Assignment website](http://www.cs.grinnell.edu/~osera/courses/csc312/18sp/homework/05-types.html).
 They are very sensible and predictable.
 
+Typechecking is done by constraint matching, to allow for type inference.
+
+### Type Inference
+
+As a part of typechecking, samsara infers the types of let-binds, functions, and function
+arguments whose types are not specified. Let-binds and function types are simply inferred by
+typechecking the type of the assigned expression. Function argument types are inferred by
+applying constraints to each expression in the AST, to allow for variable identifier strings
+that are currently matched to a generic type, to replace their matching with the current
+constraint, so as to conform to it.
+
+Generic types are generated during parsing, and replaced with their inferred types during
+typechecking, so as to keep the number of passes of the AST to 2. However, generics remain
+as they were initially generated in the AST, their inferred types are only used during
+typechecking to ensure that the inferred types are used across all expressions. Thus,
+any values whose printed representations show their type (lists, functions, etc), will be
+printed with generic types. In the future, inferred types will be returned to the evaluation
+function, and will be applied to the AST.
+
 TODO: Add typechecking rules directly in README.md
 
+## REPL
+
+The samsara REPL starts when samsara is ran with no arguments or flags, or with the
+_-repl_ flag. It allows for some simple line-editing, with left-right navigation, and
+up-down navigation through line history. To allow for multi-line expressions, expressions
+are terminated with two semicolons, `;;`. After those are entered, the expression is typechecked
+and evaluated. The type is printed out first, with the evaluated value next, like so:
+
+    t: type = val
+
+Where `type` is the type of the entered expression, and `val` the evaluated value. Any errors
+are shown in the REPL as well. In the future, REPL-specific commands will be implemented,
+to evaluate files and set modes (such as stepped mode), through the REPL.
+
 ## Dependencies
-samsara is written in OCaml, and uses the core library exclusively. Follow
+samsara is written in OCaml, and uses the core library. Follow
 the official instructions from the [OCaml website](https://ocaml.org/docs/install.html)
 to install the latest OCaml tools.
 
-The `ocamlbuild` compiler is used to build the project. The Menhir library as
-well as `ocamllex` are used for parsing and lexing. Use `opam` to download
-Menhir with
+The samsara REPL uses the `ledit 2.04` library for line editing. It is available
+for download [here](http://cristal.inria.fr/~ddr/ledit/). While it is also
+available through `opam`, the `opam` repo only has an outdated version that is not
+compatible with OCaml 4.06. Thus, manual compilation and installation is required.
+The `ledit` library is vendored into the samsara project, and can be found in the
+`vendor/` directory. Its compilation requires `camlp5`, which can be easily installed
+through `opam`. To easily compile it and install it as a library in `ocamlfind`, run
+the make target `make ledit`. As long as all dependencies are in, this should
+compile `ledit` and install it as an available library. In case this still
+doesn't work, email me at <kalfasth@grinnell.edu> with any questions.
+A separate version of samsara without a REPL will be included in future
+versions.
+
+The `ocamlbuild` compiler with the `ocamlfind` tool is used to build the
+project. The Menhir library as well as `ocamllex` are used for parsing and
+lexing. Use `opam` to download Menhir with
 
     opam install menhir
 
 This should also install `ocamlbuild`, since it's a dependency, but in the rare
-case that it doesn't `ocamlbuil` can be installed using
+case that it doesn't, `ocamlbuild` can be installed using
 
     opam install ocamlbuild
 
@@ -199,7 +253,7 @@ installations, and are mostly available in Windows using the [Windows Subsystem
 for Linux](https://docs.microsoft.com/en-us/windows/wsl/about).
 
 ## Dependencies
-See __samsara__ dependencies.
+A light version of the __samsara__ dependencies (no `ledit` dependency).
 
 ## Execution
 Run simplecli in the terminal, using `./simplecli [flag] arg1 arg2 arg3`,
@@ -219,6 +273,8 @@ If you're a dev and you make changes to simplecli, there might be an error
 about inconsistent interfaces. If so, run `make clean` before building the
 project.
 
+To compile and install `ledit`, run `make ledit`.
+
 To remove all compiled and intermediary files, run `make clean`.
 
 # Testing
@@ -234,6 +290,27 @@ testing and keep commits clean and correct. Refer to the HOOKS.md file in the
 **hooks/** directory.
 
 # Changelog
+
+## Final Project - 2018-03-16
+
+### Added
+* REPL
+* Type inference for let-binds, functions, and function arguments.
+* Some simple background generics.
+* Tests for inference.
+
+### Changed
+* Now actually typechecks before evaluation.
+* Now actually typechecks ref cells and array indexing correctly.
+  * Due to the above change, array indexing evaluates to a ref cell
+    that contains the desired value, and is addressed at the initial
+    address of the array, plus the index. So array values need to
+    be dereferenced with `!`.
+
+### Known bugs
+* Insufficient and inaccurate error reporting.
+* Generics remain in the AST, are only generated during typechecking
+  and are then thrown away.
 
 ## Assignment 06 - 2018-03-09
 

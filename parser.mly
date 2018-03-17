@@ -78,7 +78,8 @@
 %left MINUS PLUS
 %left STAR DIV
 %left APPLY
-%nonassoc DEREF LEFT_BRACK
+%nonassoc DEREF
+%nonassoc LEFT_BRACK
 
 %start <Expr.expr option> prog
 %%
