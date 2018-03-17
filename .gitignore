@@ -24,7 +24,9 @@ setup.log
 /samsara
 
 # test files
-test/samsara/generated.out
+test/samsara/arith-generated.out
+test/samsara/lex-generated.out
+test/samsara/parse-generated.out
 test/simplecli/generated.out
 
 parser.conflicts
