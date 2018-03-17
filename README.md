@@ -312,6 +312,19 @@ testing and keep commits clean and correct. Refer to the HOOKS.md file in the
 * Insufficient testing on type inference.
 * Generics remain in the AST, are only generated during typechecking
   and are then thrown away.
+  * Additionally, due to the weak way types are merged during constraint rules,
+    some types are inferred only if needed, but stay generic if they can. For
+    example,
+
+        let f = fun x => x::[] in
+        f <- 2
+
+    will typecheck to a `[\`f]`, a generic list. However,
+
+        let f = fun x => x::[] in
+        (f <- 2, f <- true)
+
+    will produce an error, since `f` cannot actually be a generic list.
 
 ## Assignment 06 - 2018-03-09
 
