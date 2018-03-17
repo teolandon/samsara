@@ -69,10 +69,10 @@
 %token EOF
 
 %nonassoc IN
+%nonassoc ELSE ARROW
 %right TYPECHAIN SEQ
 %nonassoc REF ASSIGN_REF
 %right CONS
-%nonassoc ELSE ARROW
 %nonassoc LESS GREATER LESS_EQ GREATER_EQ
 %left MOD
 %left MINUS PLUS
