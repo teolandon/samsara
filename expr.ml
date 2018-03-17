@@ -1,3 +1,4 @@
+(* used for generic printing *)
 let alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 (* Types of errors, Expr_error is a runtime error,
@@ -91,10 +92,12 @@ type typ =
   | TPair  of (typ * typ) (* Pairs of two types  *)
   | TChain of (typ * typ) (* A TChain (t1, t2) means t1->t2, a function
                            * that takes type t1 and returns a type t2 *)
-  | TGeneric of int       (* Temporary type, to be replaced during type
-                             inference *)
-  | TInfer
+  | TGeneric of int       (* Temporary types, to be replaced during type *)
+  | TInfer                (* inference *)
 
+(* Error to be raised when merging of a type and a constraint is not
+ * possible
+ *)
 exception Merge_error of (typ * typ)
 
 (* Helper types for expressions *)
@@ -360,7 +363,8 @@ let malloc_array cap typ =
 
 (* Context type that stores an association list for
  * a typechecking context, meaning bindings of labels
- * to types
+ * to types. It also has a generic count, to aid in the
+ * generation of new Generic types.
  *)
 type context = {
   ctx:           (string * typ) list;
@@ -369,16 +373,22 @@ type context = {
 
 let new_context () = {ctx = []; generic_count = 0}
 
+(* Creates a new generic in a context, increases its generic count.
+ * Returns the new generic type
+ *)
 let new_generic context =
   match context with {ctx; generic_count} ->
     ({context with generic_count = generic_count + 1}, TGeneric generic_count)
 
-let rec replace_generic i new_t old_t =
+(* Returns a type old_t with any of its TGeneric i subtypes replaced
+ * with the replacement type.
+ *)
+let rec replace_generic i replacement old_t =
   let replace_h =
-    replace_generic i new_t
+    replace_generic i replacement
   in
   match old_t with
-  | TGeneric index when i = index -> new_t
+  | TGeneric index when i = index -> replacement
   | TRef   t -> TRef (replace_h t)
   | TArray t -> TArray (replace_h t)
   | TList  t -> TList (replace_h t)
@@ -386,6 +396,9 @@ let rec replace_generic i new_t old_t =
   | TChain (t1, t2) -> TChain (replace_h t1, replace_h t2)
   | _ -> old_t
 
+(* Replaces all instances of the TGeneric i in context with the
+ * type typ
+ *)
 let assign_generic context i typ =
   match context with {ctx; generic_count} ->
     let new_ctx =
@@ -395,6 +408,11 @@ let assign_generic context i typ =
     in
     {ctx=new_ctx; generic_count}
 
+(* Merges the type t1 into t2 in the context context. The current constraint
+ * rules only allow generics to be merged into other types, and nothing else.
+ * Higher order types are also allowed to merge, as long as the types making
+ * them also follow the constraint rules.
+ *)
 let rec type_merge context t1 t2 =
   try
     match (t1, t2) with
@@ -494,11 +512,22 @@ let rec subst value str expr =
   | ELength e -> ELength (subst e)
   | _ -> expr
 
-(* typecheck context expr typechecks the expression expr
- * with the type context context.
+(* typecheck_h context expr t_constraint typechecks the expression expr
+ * with the type context context, and merges the found type with t_constraint.
+ * To discover the type of an expression, pass an empty context, an expression
+ * and a generic type as t_constraint.
+ *
+ * NOTE: In the future, all calls to typecheck_h (or tcheck_h) are going to
+ * be wrappen in `try with` blocks to raise the correct error messages instead
+ * of the lower-level Merge errors that arise due to the merging at the end of
+ * this function.
  *)
 let rec typecheck_h context expr t_constraint =
-  let context_ref = ref context in
+  let context_ref = ref context in (* helps keep return values clean *)
+
+  (* The following are helper functions that automatically update
+   * the context reference after running a function.
+   *)
   let new_generic () =
     let (new_context, gen) = new_generic !context_ref in
     context_ref := new_context; gen
@@ -510,13 +539,24 @@ let rec typecheck_h context expr t_constraint =
     match typecheck_h !context_ref expr constr with
     | (new_context, typ) -> context_ref := new_context; typ
   in
+
+  (* this let-bind allows for the pattern matched expression
+   * to simply return a type instead of returning the (context * type)
+   * tuple everywhere. Not as functional, but seems more convenient to
+   * me
+   *)
   let return_type =
     match expr with
     | EUnit  -> TUnit
     | EInt _ | EFloat _ | ENaN -> TNum
     | EBool _                  -> TBool
+
     | EOpr (opr, expr1, expr2) ->
         (try
+          (* These tcheck_h calls can be ignored, they're only used
+           * to check the expressions against the TNum constraint,
+           * an operation will always return a value of type TNum
+           *)
           ignore(tcheck_h expr1 TNum);
           ignore(tcheck_h expr2 TNum);
           TNum
@@ -531,37 +571,70 @@ let rec typecheck_h context expr t_constraint =
         with
           Merge_error _ -> raise (comp_type_error (string_of_comp comp))
         )
+
     | EIf (expr1, expr2, expr3) ->
         begin try
           ignore(tcheck_h expr1 TBool);
         with
           Merge_error _ -> raise if_not_bool
         end;
+        (* Here, tcheck_h's return type is used to be later
+         * checked against the type of expr3, as a constraint
+         *)
         let t2 = tcheck_h expr2 t_constraint in
-        (* begin try *)
+        begin try
           tcheck_h expr3 t2
-         (* with Merge_error _ -> raise if_type_mismatch *)
-        (* end *)
+         with Merge_error _ -> raise if_type_mismatch
+        end
+
     | ELet (id, typ, expr1, expr2) ->
         let t1 =
           try tcheck_h expr1 typ with Merge_error (t1, t2) ->
             raise (let_type_mismatch (string_of_type t1) (string_of_type t2))
         in
+        (* the inferred type of expr1 is assigned to the id given *)
         let new_context = add_bind !context_ref id t1 in
         begin
+          (* the new context is used in typechecking expr2, since the
+           * binding of id will be used in there *)
           match typecheck_h new_context expr2 t_constraint with (_, t) -> t
+          (* the new context, however, is not applied to the context ref,
+           * since the id is bound to the particular type only in this
+           * let's scope
+           *)
         end
+
     | EId id ->
+        (* If an ID is typechecked against a constraint, it attempts to
+         * merge the ID's current type with the constraint, so as to allow
+         * inferred ID types to be merged into whatever constraint they need
+         * to fill. If this fails, an error is thrown
+         *)
         let t = get_type !context_ref id in
         let (new_context, merged) = type_merge !context_ref t_constraint t in
         context_ref := new_context;
         merge_bind_h id merged; merged
+
     | EFun (functype, id, vartype, expr) ->
-        let new_context = add_bind !context_ref id vartype in
+        (* binds id to vartype in a new context, and typechecks the
+         * expression given against that context, since id will be used
+         * as a variable
+         *)
+        let new_context = !context_ref in
+        let new_context = add_bind new_context id vartype in
         let (new_context, t_func) =
           typecheck_h new_context expr functype
         in
+        (* After typechecking the function body, we inquire for
+         * the function argument's type in the context returned,
+         * since it might have been inferred somewhere in the body's
+         * typechecking process
+         *)
         let final_vartype = get_type new_context id in
+        (* finally, the id is removed from the context, so as to prevent
+         * any nested function declarations with the same ids for arguments
+         * from mixing the inferred types
+         *)
         let new_context =
           { new_context with
               ctx = List.remove_assoc id new_context.ctx
@@ -579,26 +652,31 @@ let rec typecheck_h context expr t_constraint =
           typecheck_h new_context expr functype
         in
         let final_vartype = get_type new_context id in
+        (* Same procedure as in EFun, but with an added id to be removed *)
+        let context_list = new_context.ctx in
+        let context_list = List.remove_assoc id context_list in
+        let context_list = List.remove_assoc name context_list in
+        let new_context = { new_context with ctx = context_list } in
+        context_ref := new_context;
         TChain (final_vartype, t_func)
+
     | EAppl (expr1, expr2) ->
+        (* Another way of writing this rule would be to produce a
+         * single generic and pass it as a constraint to expr2, and
+         * as a part of an TChain for a constraint in expr1
+         *)
         let argtype = tcheck_h expr2 (new_generic ()) in
         let functype = tcheck_h expr1 (TChain (argtype, t_constraint)) in
         (match functype with
         | TChain (_, ret_type) -> ret_type
-        | _ -> assert false (* Should never happen *)
+        | _ -> assert false (* Should never happen, error would be thrown *)
         )
+
     | EPair (expr1, expr2) ->
-        (match t_constraint with
-        | TPair (p1, p2) ->
-            let t1 = tcheck_h expr1 p1 in
-            let t2 = tcheck_h expr2 p2 in
-            TPair (t1, t2)
-        | TGeneric _ ->
-            let t1 = tcheck_h expr1 (new_generic ()) in
-            let t2 = tcheck_h expr2 (new_generic ()) in
-            TPair (t1, t2)
-        | _ -> raise (Merge_error (TGeneric 1, TGeneric 777))
-        )
+        let t1 = tcheck_h expr1 (new_generic ()) in
+        let t2 = tcheck_h expr2 (new_generic ()) in
+        TPair (t1, t2)
+
     | EFst expr ->
         let t = tcheck_h expr (TPair (t_constraint, new_generic ())) in
         (match t with
@@ -611,79 +689,72 @@ let rec typecheck_h context expr t_constraint =
         | TPair (t1, t2) -> t2
         | _              -> raise (pair_type_error "snd")
         )
+
     | ENewList typ -> TList typ
     | ECons (expr1, expr2) ->
-        (match (tcheck_h expr2 t_constraint) with
-        | TList t as list_type-> ignore(tcheck_h expr1 t); list_type
-        | _ -> raise cons_not_list
-        )
+        (* Since a cons will result in a list of the same type as expr2,
+         * expr2 is typechecked against t_constraint, and if it is actually
+         * a list of type t, expr1 is typechecked against the constraint t
+         *)
+        let t = tcheck_h expr1 (new_generic ()) in
+        tcheck_h expr2 (TList t)
+
     | EHead expr ->
         (match tcheck_h expr (TList t_constraint) with
         | TList typ -> typ
         | _         -> raise (list_type_error "hd")
         )
     | ETail expr ->
-        (match tcheck_h expr t_constraint with
-        | TList typ as list_type -> list_type
-        | TGeneric i ->
-            let new_type = TList (new_generic ()) in
-            context_ref := assign_generic !context_ref i new_type;
-            new_type
-        | _          -> raise (list_type_error "tl")
-        )
+        tcheck_h expr t_constraint
+
     | EEmpty expr ->
         ignore(tcheck_h expr (TList (new_generic ())));
         TBool
     | ERef expr ->
-        (match t_constraint with
-        | TRef t -> TRef (tcheck_h expr t)
-        | TGeneric _ -> TRef (tcheck_h expr t_constraint)
-        | _      -> raise (Merge_error (t_constraint, TRef (TInfer)))
-        )
+        TRef (tcheck_h expr (new_generic ()))
+
     | EAssign (expr1, expr2) ->
-        let gen = new_generic () in
-        let t1 = tcheck_h expr1 (TRef gen) in
-        let t2 = tcheck_h expr2 gen in
-        (match t1 with
-        | TRef tref when tref = t2 -> TUnit
-        | _ -> raise generic_type_err
-        )
+        let t2 = tcheck_h expr2 (new_generic ()) in
+        ignore(tcheck_h expr1 (TRef t2));
+        TUnit
+
     | EDeref expr ->
         (match tcheck_h expr (TRef (t_constraint)) with
         | TRef finaltype -> finaltype
         | _ -> assert false
         )
+
     | ESeq (expr1, expr2) ->
         ignore(tcheck_h expr1 (new_generic ()));
         tcheck_h expr2 t_constraint
+
     | EWhile (expr1, expr2) ->
         ignore(tcheck_h expr1 TBool); TUnit
     | ENewArray (typ, cap) -> ignore(tcheck_h cap TNum); TArray typ
+
     | EArrayRef (arr, index) ->
         ignore(tcheck_h index TNum);
-        begin match t_constraint with
-        | TRef t -> let t = tcheck_h arr (TArray t) in
-                    begin match t with
-                    | TArray t -> TRef t
-                    | _ -> assert false
-                    end
-        | TGeneric _ -> let t = tcheck_h arr (TArray t_constraint) in
-                        begin match t with
-                        | TArray t -> TRef t
-                        | _ -> assert false
-                        end
-        | _ -> raise generic_type_err
+        let t = tcheck_h arr (TArray (new_generic ())) in
+        begin match t with (* only matching to extract inner type *)
+        | TArray t -> TRef t
+        | _ -> assert false
         end
+        (* Now that I think about it, constraints could be represented
+         * with polymorphic types, and that would make pattern matching
+         * this unnecessary *)
+
     | ELength arr ->
-        (match tcheck_h arr (TArray (new_generic ())) with
-        | TArray _ -> TNum
-        | _        -> raise (Type_error "length not array")
-        )
+        ignore(tcheck_h arr (TArray (new_generic ())));
+        TNum
+
     | EArrayPtr (t, _, _) -> TArray t
     | EPtr (t, _) -> TRef t
   in
   type_merge !context_ref return_type t_constraint
 
+(* Converts all TInfer's to TGenerics and populates a context with
+ * the produced generics
+ *)
 let rec create_generics context expr =
   let context_ref = ref context in
   let r e =
@@ -735,6 +806,7 @@ let rec create_generics context expr =
     | ELength expr -> ELength (r expr)
     | _ -> expr
 
+(* Front-face for typecheck_h *)
 let typecheck expr =
   let context = new_context () in
   let (context, gen) = new_generic context in
@@ -890,7 +962,7 @@ let rec step (env:environment) (expr:expr) =
 
 (* evaluate_value expr calls step on expr repeatedly until
  * the result is a value, when it returns the fully evaluated form
- * of expr.
+ * of expr. Firstly typechecks.
  *)
 let evaluate_value env expr =
   let rec loop env expr =
