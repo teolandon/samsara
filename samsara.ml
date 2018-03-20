@@ -180,31 +180,19 @@ let read_and_apply_func named_chan func =
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
   printf "%s\n" (func lexbuf)
 
-let evaluate in_chan =
-  read_and_apply_func in_chan evaluated
-
-let parsed_str in_chan =
-  read_and_apply_func in_chan non_evaluated
-
-let lexed_str in_chan =
-  read_and_apply_func in_chan lexxd_str
-
-let typecheck in_chan =
-  read_and_apply_func in_chan typechecked
-
-let step in_chan =
-  read_and_apply_func in_chan step_and_print
-
 let rec loop_files files func =
+  let loop_h files = loop_files files func in
+  let func = (fun in_chan -> read_and_apply_func in_chan func) in
   match files with
   | [] -> ()
   | (f::fs) ->
       let in_c = open_in f in
-      func {name=f;chan=in_c};
+      func {name=f; chan=in_c};
       close_in in_c;
-      loop_files fs func
+      loop_h fs
 
 let read_stdin func =
+  let func = (fun in_chan -> read_and_apply_func in_chan func) in
   func {name="stdin"; chan=stdin}
 
 let usageMsg = "Usage: samsara.native [-lex] [-parse] [-step] [-stdin] [-type] [-repl] [-help] [FILE...]"
@@ -285,10 +273,10 @@ let main () =
     | _                             -> loop_files files
   in
   match (!lex_flag, !parse_flag, !step_flag, !type_flag) with
-  | (_, _, _, true) -> read_function typecheck
-  | (_, _, true, _) -> read_function step
-  | (_, true, _, _) -> read_function parsed_str
-  | (true, _, _, _) -> read_function lexed_str
-  | _            -> read_function evaluate
+  | (_, _, _, true) -> read_function typechecked
+  | (_, _, true, _) -> read_function step_and_print
+  | (_, true, _, _) -> read_function non_evaluated
+  | (true, _, _, _) -> read_function lexxd_str
+  | _               -> read_function evaluated
 
 let () = main ()
