@@ -107,7 +107,7 @@ let type_and_evaluated lexbuf =
     | Some expr ->
         ignore(Expr.typecheck expr);
         let (typ, (_, value)) = Expr.evaluate_value [] expr in
-        (Expr.string_of_type typ, Expr.string_of_value value)
+        (Expr.string_of_type typ, Expr.string_of_expr value)
     | None -> ("", "")
   with
     | _ as err -> ("error", str_of_error err lexbuf)
@@ -117,7 +117,7 @@ let evaluated lexbuf =
     match parse_with_error lexbuf with
     | Some expr ->
         ignore(Expr.typecheck expr);
-        Expr.string_of_value (snd (snd (Expr.evaluate_value [] expr)));
+        Expr.string_of_expr (snd (snd (Expr.evaluate_value [] expr)));
     | None -> ""
   with
     | _ as err -> str_of_error err lexbuf
@@ -133,7 +133,7 @@ let typechecked lexbuf =
 let non_evaluated lexbuf =
   try
     match parse_with_error lexbuf with
-    | Some expr -> Expr.string_of_value expr;
+    | Some expr -> Expr.string_of_expr expr;
     | None -> ""
   with
     | _ as err -> str_of_error err lexbuf
@@ -142,7 +142,7 @@ let step_and_print lexbuf =
   try
     match parse_with_error lexbuf with
     | Some expr ->
-        Expr.string_of_value (snd (Expr.evaluate_print_steps [] expr));
+        Expr.string_of_expr (snd (Expr.evaluate_print_steps [] expr));
     | None      -> ""
   with
     | _ as err -> str_of_error err lexbuf

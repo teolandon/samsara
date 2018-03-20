@@ -125,16 +125,16 @@ type expr =
   | EPair  of (expr * expr)
   | EFst   of expr
   | ESnd   of expr
-  | ENewList of typ
-  | ECons    of (expr * expr)
-  | EHead    of expr
-  | ETail    of expr
-  | EEmpty   of expr
-  | ERef     of expr
-  | EAssign  of (expr * expr)
-  | EDeref   of expr
-  | ESeq     of (expr * expr)
-  | EWhile   of (expr * expr)
+  | ENewList  of typ
+  | ECons     of (expr * expr)
+  | EHead     of expr
+  | ETail     of expr
+  | EEmpty    of expr
+  | ERef      of expr
+  | EAssign   of (expr * expr)
+  | EDeref    of expr
+  | ESeq      of (expr * expr)
+  | EWhile    of (expr * expr)
   | ENewArray of (typ * expr)
   | EArrayRef of (expr * expr)
   | ELength   of expr
@@ -234,7 +234,7 @@ let rec string_of_type typ =
   | TGeneric i -> Printf.sprintf "`%c" (String.get alphabet i)
   | TInfer -> "inferred"
 
-let rec string_of_value expr =
+let rec string_of_expr expr =
   match expr with
   | EUnit -> "()"
   | EInt a   -> string_of_int a
@@ -244,62 +244,62 @@ let rec string_of_value expr =
   | EOpr (opr, value1, value2) ->
       Printf.sprintf "(%s %s %s)"
               (string_of_opr opr)
-              (string_of_value value1)
-              (string_of_value value2)
+              (string_of_expr value1)
+              (string_of_expr value2)
   | EComp (comp, value1, value2) ->
       Printf.sprintf "(%s %s %s)"
               (string_of_comp comp)
-              (string_of_value value1)
-              (string_of_value value2)
+              (string_of_expr value1)
+              (string_of_expr value2)
   | EIf (value1, value2, value3) ->
       Printf.sprintf "(if %s then %s else %s)"
-              (string_of_value value1)
-              (string_of_value value2)
-              (string_of_value value3)
+              (string_of_expr value1)
+              (string_of_expr value2)
+              (string_of_expr value3)
   | ELet (id, typ, value1, value2) ->
       Printf.sprintf "(let %s:%s = %s in %s)"
               id (string_of_type typ)
-              (string_of_value value1)
-              (string_of_value value2)
+              (string_of_expr value1)
+              (string_of_expr value2)
   | EId id -> id
   | EFun  (functype, id, vartype, expr) ->
       Printf.sprintf "(fun (%s:%s) : %s => %s)"
                      id (string_of_type vartype) (string_of_type functype)
-                     (string_of_value expr)
+                     (string_of_expr expr)
   | EFix  (name, functype, id, vartype, expr) ->
       Printf.sprintf "(fix %s (%s:%s) : %s => %s)"
                      name id (string_of_type vartype) (string_of_type functype)
-                     (string_of_value expr)
+                     (string_of_expr expr)
   | EAppl (value1, value2) ->
-      "(" ^ (string_of_value value1) ^ " <- " ^ (string_of_value value2) ^ ")"
+      "(" ^ (string_of_expr value1) ^ " <- " ^ (string_of_expr value2) ^ ")"
   | EPair (value1, value2) ->
-      "(" ^ (string_of_value value1) ^ ", " ^ (string_of_value value2) ^ ")"
-  | EFst expr -> "(fst <- " ^ (string_of_value expr) ^ ")"
-  | ESnd expr -> "(snd <- " ^ (string_of_value expr) ^ ")"
+      "(" ^ (string_of_expr value1) ^ ", " ^ (string_of_expr value2) ^ ")"
+  | EFst expr -> "(fst <- " ^ (string_of_expr expr) ^ ")"
+  | ESnd expr -> "(snd <- " ^ (string_of_expr expr) ^ ")"
   | ENewList typ -> "[]:" ^ (string_of_type typ)
   | ECons (expr1, expr2) ->
-      "(" ^ (string_of_value expr1) ^ "::" ^ (string_of_value expr2) ^ ")"
-  | EHead expr -> "(hd <- " ^ (string_of_value expr) ^ ")"
-  | ETail expr -> "(tl <- " ^ (string_of_value expr) ^ ")"
-  | EEmpty expr -> "(empty <- " ^ (string_of_value expr) ^ ")"
-  | ERef expr -> Printf.sprintf "ref %s" (string_of_value expr)
+      "(" ^ (string_of_expr expr1) ^ "::" ^ (string_of_expr expr2) ^ ")"
+  | EHead expr -> "(hd <- " ^ (string_of_expr expr) ^ ")"
+  | ETail expr -> "(tl <- " ^ (string_of_expr expr) ^ ")"
+  | EEmpty expr -> "(empty <- " ^ (string_of_expr expr) ^ ")"
+  | ERef expr -> Printf.sprintf "ref %s" (string_of_expr expr)
   | EAssign (e1, e2) ->
-      Printf.sprintf "%s := %s" (string_of_value e1) (string_of_value e2)
-  | EDeref expr -> Printf.sprintf "!%s" (string_of_value expr)
+      Printf.sprintf "%s := %s" (string_of_expr e1) (string_of_expr e2)
+  | EDeref expr -> Printf.sprintf "!%s" (string_of_expr expr)
   | ESeq (e1, e2) ->
-      Printf.sprintf "%s; %s" (string_of_value e1) (string_of_value e2)
+      Printf.sprintf "%s; %s" (string_of_expr e1) (string_of_expr e2)
   | ENewArray (typ, cap) ->
-      Printf.sprintf "new %s[%s]" (string_of_type typ) (string_of_value cap)
+      Printf.sprintf "new %s[%s]" (string_of_type typ) (string_of_expr cap)
   | EArrayRef (arr, index) ->
-      Printf.sprintf "%s[%s]" (string_of_value arr) (string_of_value index)
+      Printf.sprintf "%s[%s]" (string_of_expr arr) (string_of_expr index)
   | EPtr (_, num) -> Printf.sprintf "Ptr(%08x)" num
   | EArrayPtr (t, addr, cap) ->
       Printf.sprintf "Arr(%08x - %08x)" addr (addr+cap)
   | EWhile (e1, e2) ->
       Printf.sprintf "while %s do %s end"
-                     (string_of_value e1) (string_of_value e2)
+                     (string_of_expr e1) (string_of_expr e2)
   | ELength e ->
-      Printf.sprintf "length <- %s" (string_of_value e)
+      Printf.sprintf "length <- %s" (string_of_expr e)
 
 (* Environtment type as an assoc list of pointer
  * addresses, mapping to values.
@@ -311,9 +311,9 @@ let string_of_env env =
     match env with
     | []     -> "]"
     | [(addr, expr)] ->
-        Printf.sprintf "(%08x, %s)]" addr (string_of_value expr)
+        Printf.sprintf "(%08x, %s)]" addr (string_of_expr expr)
     | (e::es) -> match e with (addr, expr) ->
-        Printf.sprintf "(%08x, %s), %s" addr (string_of_value expr) (helper es)
+        Printf.sprintf "(%08x, %s), %s" addr (string_of_expr expr) (helper es)
   in
   "[" ^ (helper env)
 
@@ -993,7 +993,7 @@ let evaluate_print_steps env value =
     | value when is_value value -> (env, value)
     | some_val ->
         let (new_env, stepped) = step env some_val in
-        ignore(Printf.printf "%s | %s\n" (string_of_value stepped)
+        ignore(Printf.printf "%s | %s\n" (string_of_expr stepped)
           (string_of_env new_env));
         loop new_env stepped
   in
