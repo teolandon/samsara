@@ -138,6 +138,7 @@ type expr =
   | ENewArray of (typ * expr)
   | EArrayRef of (expr * expr)
   | ELength   of expr
+  | EPrint    of expr
 
   | EPtr      of (typ * int)
   | EArrayPtr of (typ * int * int)
@@ -298,8 +299,8 @@ let rec string_of_expr expr =
   | EWhile (e1, e2) ->
       Printf.sprintf "while %s do %s end"
                      (string_of_expr e1) (string_of_expr e2)
-  | ELength e ->
-      Printf.sprintf "length <- %s" (string_of_expr e)
+  | ELength e -> Printf.sprintf "length <- %s" (string_of_expr e)
+  | EPrint  e -> Printf.sprintf "print <- %s"  (string_of_expr e)
 
 (* Environtment type as an assoc list of pointer
  * addresses, mapping to values.
@@ -511,6 +512,7 @@ let rec subst value str expr =
   | EArrayRef (arr, index) -> EArrayRef (subst arr, subst index)
   | EWhile (e1, e2) -> EWhile (subst e1, subst e2)
   | ELength e -> ELength (subst e)
+  | EPrint  e -> EPrint  (subst e)
   | _ -> expr
 
 (* typecheck_h context expr t_constraint typechecks the expression expr
@@ -756,6 +758,10 @@ let rec typecheck_h context expr t_constraint =
         ignore(tcheck_h arr (TArray (new_generic ())));
         TNum
 
+    | EPrint arr ->
+        ignore(tcheck_h arr (new_generic ()));
+        TNum
+
     | EArrayPtr (t, _, _) -> TArray t
     | EPtr (t, _) -> TRef t
   in
@@ -811,6 +817,7 @@ let create_generics context expr =
       | EWhile (e1, e2) -> EWhile (loop e1, loop e2)
       | EArrayRef (e1, e2) -> EArrayRef (loop e1, loop e2)
       | ELength expr -> ELength (loop expr)
+      | EPrint  expr -> EPrint  (loop expr)
       | _ -> expr
   in
   let ret = loop expr in
@@ -967,6 +974,10 @@ let rec step (env:environment) (expr:expr) =
         | EArrayPtr (_, _, cap) -> EInt cap
         | _ -> raise generic_type_err
         )
+
+    | EPrint e when not (is_value e) -> EPrint (step_h e)
+    | EPrint e ->
+        ignore(print_endline (string_of_expr e)); EUnit
     | _ -> raise generic_type_err
   in
   (!env_ref, stepped)

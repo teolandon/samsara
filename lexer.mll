@@ -78,6 +78,7 @@ rule read =
   | "unit"   { T_UNIT }
   | "fst"    { FST }
   | "snd"    { SND }
+  | "print"  { PRINT }
   | "()"     { UNIT }
   | '('      { LEFT_PAREN }
   | ')'      { RIGHT_PAREN }

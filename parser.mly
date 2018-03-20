@@ -17,6 +17,8 @@
 %token DO
 %token END
 
+%token PRINT
+
 %token NEW
 %token ARRAY
 %token LENGTH
@@ -108,6 +110,7 @@ exp:
   | l = lists   { l }
   | i = ID      { EId i }
   | UNIT        { EUnit }
+  | PRINT; APPLY; e = expr { EPrint e }
   ;
 
 wloop:
