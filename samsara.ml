@@ -149,19 +149,24 @@ let step_and_print lexbuf =
     | _ as err -> str_of_error err lexbuf
 
 let lexxd_str lexbuf =
-  let rec run lexbuf curr_str =
+  let rec loop lexbuf buf =
     let tok = Lexer.read lexbuf in
     match tok with
-    | Parser.EOF -> curr_str
+    | Parser.EOF -> Buffer.contents buf
     | _          ->
-        let new_str = sprintf "%s%s " curr_str (string_of_token tok) in
-        run lexbuf new_str
+        (Buffer.add_string buf (string_of_token tok));
+        (Buffer.add_string buf " ");
+        loop lexbuf buf
   in
   let lex_string lexbuf =
     let tok = Lexer.read lexbuf in
     match tok with
     | Parser.EOF -> "[No tokens]"
-    | _          -> run lexbuf ((string_of_token tok) ^ " ")
+    | _          ->
+        let buf = Buffer.create 256 in
+        (Buffer.add_string buf (string_of_token tok));
+        (Buffer.add_string buf " ");
+        loop lexbuf buf
   in
   try
     lex_string lexbuf
