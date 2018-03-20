@@ -207,7 +207,7 @@ let rec loop_files files func =
 let read_stdin func =
   func {name="stdin"; chan=stdin}
 
-let usageMsg = "Usage: samsara.native [-lex] [-parse] [-step] [-stdin] [-type] [FILE...]"
+let usageMsg = "Usage: samsara.native [-lex] [-parse] [-step] [-stdin] [-type] [-repl] [-help] [FILE...]"
 
 let speclist = [
   ("-lex",   Arg.Set lex_flag, "prints the lexx'd list of tokens");
@@ -215,6 +215,7 @@ let speclist = [
   ("-step",  Arg.Set step_flag, "prints step-by-step evaluation");
   ("-stdin", Arg.Set stdin_flag, "parses from stdin instead of files");
   ("-type",  Arg.Set type_flag, "only typechecks");
+  ("-repl",  Arg.Set repl_flag, "enables the repl");
   ("--help", Arg.Unit (fun () -> ()), ""); (* Supresses flag *)
 ]
 
