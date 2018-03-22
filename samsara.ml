@@ -158,7 +158,7 @@ let lexxd_str lexbuf =
         (Buffer.add_string buf " ");
         loop lexbuf buf
   in
-  let lex_string lexbuf =
+  try
     let tok = Lexer.read lexbuf in
     match tok with
     | Parser.EOF -> "[No tokens]"
@@ -167,9 +167,6 @@ let lexxd_str lexbuf =
         (Buffer.add_string buf (string_of_token tok));
         (Buffer.add_string buf " ");
         loop lexbuf buf
-  in
-  try
-    lex_string lexbuf
   with
   | error -> str_of_error error lexbuf
 

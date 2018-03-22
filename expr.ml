@@ -93,7 +93,7 @@ type typ =
   | TPair  of (typ * typ) (* Pairs of two types  *)
   | TChain of (typ * typ) (* A TChain (t1, t2) means t1->t2, a function
                            * that takes type t1 and returns a type t2 *)
-  | TGeneric of int       (* Temporary types, to be replaced during type *)
+  | TVar of int           (* Temporary types, to be replaced during type *)
   | TInfer                (* inference *)
 
 (* Error to be raised when merging of a type and a constraint is not
@@ -155,6 +155,107 @@ let rec is_value (expr:expr) =
   | ENewList _ -> true
   | ECons  (e1, e2) -> is_value e1 && is_value e2
   | _ -> false
+
+module IDMap   = Map.Make(String)
+module TypeMap = Map.Make(struct type t = int let compare = compare end)
+
+(* Context type that stores an association list for
+ * a typechecking context, meaning bindings of labels
+ * to types. It also has a generic count, to aid in the
+ * generation of new Generic types.
+ *)
+type context = {
+  id_ctx:        typ IDMap.t;
+  typevar_ctx:   (typ option) TypeMap.t
+}
+
+let new_context () = {
+  id_ctx      = IDMap.empty;
+  typevar_ctx = TypeMap.empty
+}
+
+let rec get_typevar context tvar =
+  match context with { typevar_ctx } ->
+  match tvar with
+  | TVar i ->
+      begin match TypeMap.find i typevar_ctx with
+      | None   -> tvar
+      | Some t -> get_typevar context t
+      end
+  | _ -> tvar
+
+(* Creates a new generic in a context, increases its generic count.
+ * Returns the new generic type
+ *)
+let new_generic context =
+  match context with { typevar_ctx } ->
+    let l = TypeMap.cardinal typevar_ctx in
+    let new_typevar = TypeMap.add l None typevar_ctx in
+    let new_ctx = { context with typevar_ctx = new_typevar } in
+    (new_ctx, TVar l)
+
+(* Assigns all instances of the TVar i in context to the
+ * type typ
+ *)
+let assign_generic context i typ =
+  match context with { typevar_ctx } ->
+    let new_typevar = TypeMap.add i (Some typ) typevar_ctx in
+    { context with typevar_ctx = new_typevar }
+
+(* Merges the type t1 into t2 in the context context. The current constraint
+ * rules only allow generics to be merged into other types, and nothing else.
+ * Higher order types are also allowed to merge, as long as the types making
+ * them also follow the constraint rules.
+ *)
+let rec type_merge context t1 t2 =
+  try
+    match (t1, t2) with
+    | (TVar i, t_other) | (t_other, TVar i) ->
+        (assign_generic context i t_other, t_other)
+    | (TRef t1, TRef t2) ->
+        let (new_context, return_type) = type_merge context t1 t2 in
+        (new_context, TRef return_type)
+    | (TArray t1, TArray t2) ->
+        let (new_context, return_type) = type_merge context t1 t2 in
+        (new_context, TArray return_type)
+    | (TList t1, TList t2) ->
+        let (new_context, return_type) = type_merge context t1 t2 in
+        (new_context, TList return_type)
+    | (TPair (t1, t2), TPair (t3, t4)) ->
+        let (new_context, return_type1) = type_merge context     t1 t3 in
+        let (new_context, return_type2) = type_merge new_context t2 t4 in
+        (new_context, TPair (return_type1, return_type2))
+    | (TChain (t1, t2), TChain (t3, t4)) ->
+        let (new_context, return_type1) = type_merge context     t1 t3 in
+        let (new_context, return_type2) = type_merge new_context t2 t4 in
+        (new_context, TChain (return_type1, return_type2))
+    | (t1, t2) when t1 = t2 -> (context, t2)
+    | _                     -> raise (Merge_error (t1, t2))
+  with Merge_error _ -> raise (Merge_error (t1, t2))
+
+(* get_type context id looks up the label id in the
+ * association list context, and returns its type
+ *)
+let get_type context id =
+  match context with { id_ctx } ->
+  IDMap.find id id_ctx
+
+(* add_bind context id typ adds the association pair
+ * (id, typ) in the context given, and replaces id's
+ * previous type association, if it exists
+ *)
+let add_bind context id typ =
+  match context with { id_ctx } ->
+    { context with id_ctx = IDMap.add id typ id_ctx }
+
+(* merge_bind context id typ adds the association pair
+ * (id, typ) in the context given, and merges id's
+ * two types if a binding already exists
+ *)
+let merge_bind context id typ =
+  let old_type = get_type context id in
+  let (new_context, _) = type_merge context old_type typ in
+  new_context
 
 (* Operators and Comparatos *)
 
@@ -232,7 +333,7 @@ let rec string_of_type typ =
       "(" ^ (string_of_type t1) ^ " * " ^ (string_of_type t2) ^ ")"
   | TChain (t1, t2)  -> (string_of_type t1) ^ "->" ^ (string_of_type t2)
   | TList t -> "[" ^ (string_of_type t) ^ "]"
-  | TGeneric i -> Printf.sprintf "`%c" (String.get alphabet i)
+  | TVar i -> Printf.sprintf "`%c" (String.get alphabet i)
   | TInfer -> "inferred"
 
 let rec string_of_expr expr =
@@ -362,113 +463,6 @@ let malloc_array cap typ =
   let addr = !address_count in
   address_count := addr + cap;
   EArrayPtr (typ, addr, cap)
-
-(* Context type that stores an association list for
- * a typechecking context, meaning bindings of labels
- * to types. It also has a generic count, to aid in the
- * generation of new Generic types.
- *)
-type context = {
-  ctx:           (string * typ) list;
-  generic_count: int
-}
-
-let new_context () = {ctx = []; generic_count = 0}
-
-(* Creates a new generic in a context, increases its generic count.
- * Returns the new generic type
- *)
-let new_generic context =
-  match context with {ctx; generic_count} ->
-    ({context with generic_count = generic_count + 1}, TGeneric generic_count)
-
-(* Returns a type old_t with any of its TGeneric i subtypes replaced
- * with the replacement type.
- *)
-let rec replace_generic i replacement old_t =
-  let replace_h =
-    replace_generic i replacement
-  in
-  match old_t with
-  | TGeneric index when i = index -> replacement
-  | TRef   t -> TRef (replace_h t)
-  | TArray t -> TArray (replace_h t)
-  | TList  t -> TList (replace_h t)
-  | TPair  (t1, t2) -> TPair (replace_h t1, replace_h t2)
-  | TChain (t1, t2) -> TChain (replace_h t1, replace_h t2)
-  | _ -> old_t
-
-(* Replaces all instances of the TGeneric i in context with the
- * type typ
- *)
-let assign_generic context i typ =
-  match context with {ctx; generic_count} ->
-    let new_ctx =
-      List.map
-      (fun (id, old_typ) -> (id, (replace_generic i typ old_typ)))
-      ctx
-    in
-    {ctx=new_ctx; generic_count}
-
-(* Merges the type t1 into t2 in the context context. The current constraint
- * rules only allow generics to be merged into other types, and nothing else.
- * Higher order types are also allowed to merge, as long as the types making
- * them also follow the constraint rules.
- *)
-let rec type_merge context t1 t2 =
-  try
-    match (t1, t2) with
-    | (TGeneric i, t_other) | (t_other, TGeneric i) ->
-        (assign_generic context i t_other, t_other)
-    | (TRef t1, TRef t2) ->
-        let (new_context, return_type) = type_merge context t1 t2 in
-        (new_context, TRef return_type)
-    | (TArray t1, TArray t2) ->
-        let (new_context, return_type) = type_merge context t1 t2 in
-        (new_context, TArray return_type)
-    | (TList t1, TList t2) ->
-        let (new_context, return_type) = type_merge context t1 t2 in
-        (new_context, TList return_type)
-    | (TPair (t1, t2), TPair (t3, t4)) ->
-        let (new_context, return_type1) = type_merge context     t1 t3 in
-        let (new_context, return_type2) = type_merge new_context t2 t4 in
-        (new_context, TPair (return_type1, return_type2))
-    | (TChain (t1, t2), TChain (t3, t4)) ->
-        let (new_context, return_type1) = type_merge context     t1 t3 in
-        let (new_context, return_type2) = type_merge new_context t2 t4 in
-        (new_context, TChain (return_type1, return_type2))
-    | (t1, t2) when t1 = t2 -> (context, t2)
-    | _                     -> raise (Merge_error (t1, t2))
-  with Merge_error _ -> raise (Merge_error (t1, t2))
-
-(* get_type context id looks up the label id in the
- * association list context, and returns its type
- *)
-let get_type context id =
-  match context with {ctx; _} ->
-  List.assoc id ctx
-
-(* add_bind context id typ adds the association pair
- * (id, typ) in the context given, and replaces id's
- * previous type association, if it exists
- *)
-let add_bind (context:context) (id:string) (typ:typ) =
-  match context with {ctx; generic_count} ->
-  try
-    ignore(get_type context id);
-    let new_list = List.remove_assoc id ctx in
-    {ctx = (id, typ) :: new_list; generic_count}
-  with
-    Not_found -> {ctx = (id, typ) :: ctx; generic_count}
-
-(* merge_bind context id typ adds the association pair
- * (id, typ) in the context given, and merges id's
- * two types if a binding already exists
- *)
-let merge_bind context id typ =
-  let old_type = get_type context id in
-  let (new_context, merged_type) = type_merge context old_type typ in
-  new_context
 
 (* subst value str expr substitutes any instances of the label
  * str with the value value, in the expression expr recursively
@@ -617,10 +611,8 @@ let rec typecheck_h context expr t_constraint =
          * inferred ID types to be merged into whatever constraint they need
          * to fill. If this fails, an error is thrown
          *)
-        let t = get_type !context_ref id in
-        let (new_context, merged) = type_merge !context_ref t_constraint t in
-        context_ref := new_context;
-        merge_bind_h id merged; merged
+        merge_bind_h id t_constraint;
+        get_type !context_ref id
 
     | EFun (functype, id, vartype, expr) ->
         (* binds id to vartype in a new context, and typechecks the
@@ -644,7 +636,7 @@ let rec typecheck_h context expr t_constraint =
          *)
         let new_context =
           { new_context with
-              ctx = List.remove_assoc id new_context.ctx
+              id_ctx = IDMap.remove id new_context.id_ctx
           }
         in
         context_ref := new_context;
@@ -660,10 +652,10 @@ let rec typecheck_h context expr t_constraint =
         in
         let final_vartype = get_type new_context id in
         (* Same procedure as in EFun, but with an added id to be removed *)
-        let context_list = new_context.ctx in
-        let context_list = List.remove_assoc id context_list in
-        let context_list = List.remove_assoc name context_list in
-        let new_context = { new_context with ctx = context_list } in
+        let context_list = new_context.id_ctx in
+        let context_list = IDMap.remove id context_list in
+        let context_list = IDMap.remove name context_list in
+        let new_context = { new_context with id_ctx = context_list } in
         context_ref := new_context;
         TChain (final_vartype, t_func)
 
@@ -767,7 +759,7 @@ let rec typecheck_h context expr t_constraint =
   in
   type_merge !context_ref return_type t_constraint
 
-(* Converts all TInfer's to TGenerics and populates a context with
+(* Converts all TInfers to TVars and populates a context with
  * the produced generics
  *)
 let create_generics context expr =
@@ -828,7 +820,8 @@ let typecheck expr =
   let context = new_context () in
   let (context, expr) = create_generics context expr in
   let (context, gen) = new_generic context in
-  match typecheck_h context expr gen with (final_context, typ) -> typ
+  match typecheck_h context expr gen with (final_context, typ) ->
+    typ
 
 (* step expr evaluates the expression expr using small-step semantics.
  * Any expression expr will be simplified one step. If expr is a value,
