@@ -96,6 +96,20 @@ type typ =
   | TVar of int           (* Temporary types, to be replaced during type *)
   | TInfer                (* inference *)
 
+let rec string_of_type typ =
+  match typ with
+  | TUnit -> "unit"
+  | TBool -> "bool"
+  | TNum  -> "num"
+  | TRef t   -> Printf.sprintf "<%s>" (string_of_type t)
+  | TArray t -> Printf.sprintf "array<%s>" (string_of_type t)
+  | TPair  (t1, t2)  ->
+      "(" ^ (string_of_type t1) ^ " * " ^ (string_of_type t2) ^ ")"
+  | TChain (t1, t2)  -> (string_of_type t1) ^ "->" ^ (string_of_type t2)
+  | TList t -> "[" ^ (string_of_type t) ^ "]"
+  | TVar i -> Printf.sprintf "`%c" (String.get alphabet i)
+  | TInfer -> "inferred"
+
 (* Error to be raised when merging of a type and a constraint is not
  * possible
  *)
@@ -169,20 +183,70 @@ type context = {
   typevar_ctx:   (typ option) TypeMap.t
 }
 
+let print_context ctx =
+  let f key value =
+    Printf.printf "(%s : %s) " key (string_of_type value)
+  in
+  match ctx with { id_ctx } ->
+  print_endline "context:";
+  IDMap.iter f id_ctx;
+  print_endline "";
+  print_endline "---------"
+
+let print_tvars ctx =
+  let f key value =
+    match value with
+    | None   -> Printf.printf "(%i : TVar %i) " key key
+    | Some t -> Printf.printf "(%i : %s) " key (string_of_type t)
+  in
+  match ctx with { typevar_ctx } ->
+  print_endline "tvars:";
+  TypeMap.iter f typevar_ctx;
+  print_endline "";
+  print_endline "---------"
+
 let new_context () = {
   id_ctx      = IDMap.empty;
   typevar_ctx = TypeMap.empty
 }
 
-let rec get_typevar context tvar =
+let get_typevar context tvar =
   match context with { typevar_ctx } ->
-  match tvar with
-  | TVar i ->
-      begin match TypeMap.find i typevar_ctx with
-      | None   -> tvar
-      | Some t -> get_typevar context t
-      end
-  | _ -> tvar
+  let rec loop tvar init_tvar =
+    match tvar with
+    | TVar i ->
+        begin match TypeMap.find i typevar_ctx with
+        | None   -> tvar
+        | Some t1 when t1 = tvar -> tvar
+        | Some t1 ->
+            begin match init_tvar with
+            | None ->
+                loop t1 (Some tvar)
+            | Some t2 when t2 = t1 -> t1
+            | _ ->
+                loop t1 init_tvar
+            end
+        end
+    | TRef t ->
+        let inside_type = loop t None in
+        TRef inside_type
+    | TArray t ->
+        let inside_type = loop t None in
+        TArray inside_type
+    | TList t ->
+        let inside_type = loop t None in
+        TList inside_type
+    | TPair (t1, t2) ->
+        let in_t1 = loop t1 None in
+        let in_t2 = loop t2 None in
+        TPair (in_t1, in_t2)
+    | TChain (t1, t2) ->
+        let in_t1 = loop t1 None in
+        let in_t2 = loop t2 None in
+        TChain (in_t1, in_t2)
+    | _ -> tvar
+  in
+  loop tvar None
 
 (* Creates a new generic in a context, increases its generic count.
  * Returns the new generic type
@@ -211,7 +275,11 @@ let rec type_merge context t1 t2 =
   try
     match (t1, t2) with
     | (TVar i, t_other) | (t_other, TVar i) ->
-        (assign_generic context i t_other, t_other)
+        begin match get_typevar context (TVar i) with
+        | TVar l ->
+            (assign_generic context l t_other, t_other)
+        | _ as t -> type_merge context t t_other
+        end
     | (TRef t1, TRef t2) ->
         let (new_context, return_type) = type_merge context t1 t2 in
         (new_context, TRef return_type)
@@ -229,7 +297,8 @@ let rec type_merge context t1 t2 =
         let (new_context, return_type1) = type_merge context     t1 t3 in
         let (new_context, return_type2) = type_merge new_context t2 t4 in
         (new_context, TChain (return_type1, return_type2))
-    | (t1, t2) when t1 = t2 -> (context, t2)
+    | (t1, t2) when t1 = t2 ->
+        (context, t2)
     | _                     -> raise (Merge_error (t1, t2))
   with Merge_error _ -> raise (Merge_error (t1, t2))
 
@@ -321,20 +390,6 @@ let string_of_comp comp =
   | EGreater -> ">"
   | ELessEq -> "<="
   | EGreaterEq -> ">="
-
-let rec string_of_type typ =
-  match typ with
-  | TUnit -> "unit"
-  | TBool -> "bool"
-  | TNum  -> "num"
-  | TRef t   -> Printf.sprintf "<%s>" (string_of_type t)
-  | TArray t -> Printf.sprintf "array<%s>" (string_of_type t)
-  | TPair  (t1, t2)  ->
-      "(" ^ (string_of_type t1) ^ " * " ^ (string_of_type t2) ^ ")"
-  | TChain (t1, t2)  -> (string_of_type t1) ^ "->" ^ (string_of_type t2)
-  | TList t -> "[" ^ (string_of_type t) ^ "]"
-  | TVar i -> Printf.sprintf "`%c" (String.get alphabet i)
-  | TInfer -> "inferred"
 
 let rec string_of_expr expr =
   match expr with
@@ -586,24 +641,24 @@ let rec typecheck_h context expr t_constraint =
 
     | ELet (id, typ, expr1, expr2) ->
         let t1 =
-          (* try *)
+          try
             tcheck_h expr1 typ
-          (* with Merge_error (t1, t2) -> *)
-          (*   raise (let_type_mismatch *)
-          (*         (string_of_value expr1) (string_of_value expr2) *)
-          (*         (string_of_type t1) (string_of_type t2)) *)
+          with Merge_error (t1, t2) ->
+            raise (let_type_mismatch
+                  (string_of_expr expr1) (string_of_expr expr2)
+                  (string_of_type t1) (string_of_type t2))
         in
         (* the inferred type of expr1 is assigned to the id given *)
         let new_context = add_bind !context_ref id t1 in
-        begin
-          (* the new context is used in typechecking expr2, since the
-           * binding of id will be used in there *)
-          match typecheck_h new_context expr2 t_constraint with (_, t) -> t
-          (* the new context, however, is not applied to the context ref,
-           * since the id is bound to the particular type only in this
-           * let's scope
-           *)
-        end
+        let (new_context, t) =  typecheck_h new_context expr2 t_constraint in
+        (* the new context is used in typechecking expr2, since the
+         * binding of id will be used in there *)
+        context_ref := new_context;
+        t
+        (* the new context, however, is not applied to the context ref,
+         * since the id is bound to the particular type only in this
+         * let's scope
+         *)
 
     | EId id ->
         (* If an ID is typechecked against a constraint, it attempts to
@@ -728,7 +783,16 @@ let rec typecheck_h context expr t_constraint =
         )
 
     | ESeq (expr1, expr2) ->
-        ignore(tcheck_h expr1 (new_generic ()));
+        (* We make sure to only pass along the typevar context to
+         * the next expression, to avoid let-bindings from slipping
+         * from expression to expression
+         *)
+        let (new_context, _) =
+          typecheck_h !context_ref expr1 (new_generic ())
+        in
+        begin match new_context with { typevar_ctx = new_t_ctx } ->
+        context_ref := { !context_ref with typevar_ctx = new_t_ctx };
+        end;
         tcheck_h expr2 t_constraint
 
     | EWhile (expr1, expr2) ->
@@ -821,7 +885,9 @@ let typecheck expr =
   let (context, expr) = create_generics context expr in
   let (context, gen) = new_generic context in
   match typecheck_h context expr gen with (final_context, typ) ->
-    typ
+    (* print_context final_context; *)
+    (* print_tvars final_context; *)
+    get_typevar final_context typ
 
 (* step expr evaluates the expression expr using small-step semantics.
  * Any expression expr will be simplified one step. If expr is a value,
