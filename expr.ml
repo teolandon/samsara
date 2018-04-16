@@ -248,6 +248,14 @@ let get_typevar context tvar =
   in
   loop tvar None
 
+let finalize_context context =
+  match context with { id_ctx; typevar_ctx } ->
+  let iter_id value = get_typevar context value in
+  let iter_type key _ = Some (get_typevar context (TVar key)) in
+  let new_id_ctx = IDMap.map iter_id id_ctx in
+  let new_type_ctx = TypeMap.mapi iter_type typevar_ctx in
+  { id_ctx = new_id_ctx; typevar_ctx = new_type_ctx }
+
 (* Creates a new generic in a context, increases its generic count.
  * Returns the new generic type
  *)
@@ -823,71 +831,69 @@ let rec typecheck_h context expr t_constraint =
   in
   type_merge !context_ref return_type t_constraint
 
+let rec apply_typefunc_to_expr typefunc expr =
+  let recurse e = apply_typefunc_to_expr typefunc e in
+  match expr with
+  | ELet (id, typ, e1, e2) ->
+      let e1 = recurse e1 in
+      let e2 = recurse e2 in
+      ELet (id, typefunc typ, e1, e2)
+  | EFun (functype, id, vartype, e) ->
+      EFun (typefunc functype, id, typefunc vartype, recurse e)
+  | EFix (name, functype, id, vartype, e) ->
+      EFix (name, typefunc functype, id, typefunc vartype, recurse e)
+  | ENewList typ -> ENewList (typefunc typ)
+  | ENewArray (typ, cap) -> ENewArray (typefunc typ, cap)
+  | EOpr (opr, e1, e2)   -> EOpr (opr, recurse e1, recurse e2)
+  | EComp (comp, e1, e2) -> EComp (comp, recurse e1, recurse e2)
+  | EIf (e1, e2, e3)     -> EIf (recurse e1, recurse e2, recurse e3)
+  | EAppl (e1, e2) -> EAppl (recurse e1, recurse e2)
+  | EPair (e1, e2) -> EPair (recurse e1, recurse e2)
+  | EFst expr -> EFst (recurse expr)
+  | ESnd expr -> ESnd (recurse expr)
+  | ECons (e1, e2) -> ECons (recurse e1, recurse e2)
+  | EHead expr -> EHead (recurse expr)
+  | ETail expr -> ETail (recurse expr)
+  | EEmpty expr -> EEmpty (recurse expr)
+  | ERef expr -> ERef (recurse expr)
+  | EAssign (e1, e2) -> EAssign (recurse e1, recurse e2)
+  | EDeref expr -> EDeref (recurse expr)
+  | ESeq (e1, e2) -> ESeq (recurse e1, recurse e2)
+  | EWhile (e1, e2) -> EWhile (recurse e1, recurse e2)
+  | EArrayRef (e1, e2) -> EArrayRef (recurse e1, recurse e2)
+  | ELength expr -> ELength (recurse expr)
+  | EPrint  expr -> EPrint  (recurse expr)
+  | _ -> expr
+
 (* Converts all TInfers to TVars and populates a context with
  * the produced generics
  *)
 let create_generics context expr =
   let context_ref = ref context in
-  let rec loop expr =
-    let new_generic () =
-      match new_generic !context_ref with (new_context, generic) ->
+  let new_generic t =
+    match t with
+    | TInfer ->
+        let (new_context, generic) = new_generic !context_ref in
         context_ref := new_context; generic
-    in
-    match expr with
-      | ELet (id, typ, expr1, expr2) when typ = TInfer ->
-          let gen = new_generic () in ELet (id, gen, loop expr1, loop expr2)
-      | EFun (functype, id, vartype, expr) when functype = TInfer ->
-          let gen = new_generic () in loop (EFun (gen, id, vartype, expr))
-      | EFun (functype, id, vartype, expr) when vartype = TInfer ->
-          let gen = new_generic () in loop (EFun (functype, id, gen, expr))
-      | EFix (name, functype, id, vartype, expr) when functype = TInfer ->
-          let gen = new_generic () in loop (EFix (name, gen, id, vartype, expr))
-      | EFix (name, functype, id, vartype, expr) when vartype = TInfer ->
-          let gen = new_generic () in loop (EFix (name, functype, id, gen, expr))
-      | ENewList typ when typ = TInfer ->
-          let gen = new_generic () in ENewList gen
-      | ENewArray (typ, cap) when typ = TInfer ->
-          let gen = new_generic () in ENewArray (gen, loop cap)
-
-      | ELet (id, typ, expr1, expr2) -> ELet (id, typ, loop expr1, loop expr2)
-      | EFun (functype, id, vartype, expr) ->
-          EFun (functype, id, vartype, loop expr)
-      | EFix (name, functype, id, vartype, expr) ->
-          EFix (name, functype, id, vartype, loop expr)
-      | ENewArray (typ, cap) -> ENewArray (typ, loop cap)
-      | EOpr (opr, e1, e2)   -> EOpr (opr, loop e1, loop e2)
-      | EComp (comp, e1, e2) -> EComp (comp, loop e1, loop e2)
-      | EIf (e1, e2, e3)     -> EIf (loop e1, loop e2, loop e3)
-      | EAppl (e1, e2) -> EAppl (loop e1, loop e2)
-      | EPair (e1, e2) -> EPair (loop e1, loop e2)
-      | EFst expr -> EFst (loop expr)
-      | ESnd expr -> ESnd (loop expr)
-      | ECons (e1, e2) -> ECons (loop e1, loop e2)
-      | EHead expr -> EHead (loop expr)
-      | ETail expr -> ETail (loop expr)
-      | EEmpty expr -> EEmpty (loop expr)
-      | ERef expr -> ERef (loop expr)
-      | EAssign (e1, e2) -> EAssign (loop e1, loop e2)
-      | EDeref expr -> EDeref (loop expr)
-      | ESeq (e1, e2) -> ESeq (loop e1, loop e2)
-      | EWhile (e1, e2) -> EWhile (loop e1, loop e2)
-      | EArrayRef (e1, e2) -> EArrayRef (loop e1, loop e2)
-      | ELength expr -> ELength (loop expr)
-      | EPrint  expr -> EPrint  (loop expr)
-      | _ -> expr
+    | _ -> t
   in
-  let ret = loop expr in
+  let ret = apply_typefunc_to_expr new_generic expr in
   (!context_ref, ret)
+
+let finalize_expr context expr =
+  let typefunc t = get_typevar context t in
+  apply_typefunc_to_expr typefunc expr
 
 (* Front-face for typecheck_h *)
 let typecheck expr =
   let context = new_context () in
   let (context, expr) = create_generics context expr in
   let (context, gen) = new_generic context in
-  match typecheck_h context expr gen with (final_context, typ) ->
-    (* print_context final_context; *)
-    (* print_tvars final_context; *)
-    get_typevar final_context typ
+  match typecheck_h context expr gen with (context, typ) ->
+    let final_context = finalize_context context in
+    let final_typ = get_typevar final_context typ in
+    let final_expr = finalize_expr context expr in
+    (final_typ, final_expr)
 
 (* step expr evaluates the expression expr using small-step semantics.
  * Any expression expr will be simplified one step. If expr is a value,
@@ -978,7 +984,8 @@ let rec step (env:environment) (expr:expr) =
     | ERef expr when not (is_value expr) ->
         ERef (step_h expr)
     | ERef expr ->
-        let (new_env, ptr) = malloc (typecheck expr) !env_ref expr in
+        let (typ, expr) = typecheck expr in
+        let (new_env, ptr) = malloc typ !env_ref expr in
         env_ref := new_env; ptr
     | EAssign (ref, expr) ->
         (match (ref, expr) with
@@ -1053,7 +1060,7 @@ let evaluate_value env expr =
         let (new_env, stepped) = step env some_val in
         loop new_env stepped
   in
-  let typ = typecheck expr in
+  let (typ, expr) = typecheck expr in
   (typ, loop env expr)
 
 (* Same as evaluate_value, but prints out each step. *)

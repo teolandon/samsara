@@ -126,7 +126,7 @@ let evaluated lexbuf =
 let typechecked lexbuf =
   try
     match parse_with_error lexbuf with
-    | Some expr -> Expr.string_of_type (Expr.typecheck expr);
+    | Some expr -> Expr.string_of_type (fst (Expr.typecheck expr));
     | None -> ""
   with
     | _ as err -> str_of_error err lexbuf
