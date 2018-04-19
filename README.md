@@ -170,16 +170,8 @@ As a part of typechecking, samsara infers the types of let-binds, functions, and
 arguments whose types are not specified. Let-binds and function types are simply inferred by
 typechecking the type of the assigned expression. Function argument types are inferred by
 applying constraints to each expression in the AST, to allow for variable identifier strings
-that are currently matched to a generic type, to replace their matching with the current
+that are currently matched to a type variable, to replace their matching with the current
 constraint, so as to conform to it.
-
-Generic types are generated during parsing, and replaced with their inferred types during
-typechecking, so as to keep the number of passes of the AST to 2. However, generics remain
-as they were initially generated in the AST, their inferred types are only used during
-typechecking to ensure that the inferred types are used across all expressions. Thus,
-any values whose printed representations show their type (lists, functions, etc), will be
-printed with generic types. In the future, inferred types will be returned to the evaluation
-function, and will be applied to the AST.
 
 TODO: Add typechecking rules directly in README.md
 
@@ -290,7 +282,17 @@ testing and keep commits clean and correct. Refer to the HOOKS.md file in the
 
 # Changelog
 
+## Small Cleanup - 2018-04-19
+
 ## Final Project - 2018-03-16
+
+### Changed
+* Implementation of type inference is a little cleaner.
+* Type variables now print in order.
+
+### Known bugs
+* Insufficient and inaccurate error reporting.
+* Insufficient testing on type inference.
 
 ### Added
 * REPL
