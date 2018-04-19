@@ -108,6 +108,7 @@ let type_and_evaluated lexbuf =
     | Some expr ->
         ignore(Expr.typecheck expr);
         let (typ, (_, value)) = Expr.evaluate_value [] expr in
+        Expr.reset_tvars ();
         (Expr.string_of_type typ, Expr.string_of_expr value)
     | None -> ("", "")
   with

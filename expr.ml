@@ -96,6 +96,11 @@ type typ =
   | TVar of int           (* Temporary types, to be replaced during type *)
   | TInfer                (* inference *)
 
+module TVarName = Map.Make(struct type t = int let compare = compare end)
+let tvar_map = ref TVarName.empty
+
+let reset_tvars () = tvar_map := TVarName.empty
+
 let rec string_of_type typ =
   match typ with
   | TUnit -> "unit"
@@ -107,7 +112,14 @@ let rec string_of_type typ =
       "(" ^ (string_of_type t1) ^ " * " ^ (string_of_type t2) ^ ")"
   | TChain (t1, t2)  -> (string_of_type t1) ^ "->" ^ (string_of_type t2)
   | TList t -> "[" ^ (string_of_type t) ^ "]"
-  | TVar i -> Printf.sprintf "`%c" (String.get alphabet i)
+  | TVar i ->
+      begin match TVarName.find_opt i !tvar_map with
+      | Some str -> str
+      | None ->
+          let new_num = TVarName.cardinal !tvar_map in
+          let new_str = Printf.sprintf "`%c" (String.get alphabet new_num) in
+          tvar_map := TVarName.add i new_str !tvar_map; new_str
+      end
   | TInfer -> "inferred"
 
 (* Error to be raised when merging of a type and a constraint is not
